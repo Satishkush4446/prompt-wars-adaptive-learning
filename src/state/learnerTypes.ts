@@ -168,3 +168,11 @@ export interface LearnerState {
   initialLearningMode: LearningMode | null;
   learningLanguage: LearningLanguage;
 }
+
+export interface StateWithHistory<T> {
+  past: T[];
+  present: T;
+  future: T[];
+}
+
+export type UndoableAction<TAction> = TAction | { type: "STEP_BACK" };

@@ -9,7 +9,9 @@ import type {
   GeneratedLesson,
   LearningDuration,
   LearningMode,
-  LearningLanguage
+  LearningLanguage,
+  StateWithHistory,
+  UndoableAction
 } from "./learnerTypes";
 import { initialLearnerState } from "./initialState";
 
@@ -495,4 +497,36 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
     default:
       return state;
   }
+}
+
+export function learnerReducerWithHistory(
+  state: StateWithHistory<LearnerState>,
+  action: UndoableAction<LearnerAction>
+): StateWithHistory<LearnerState> {
+  if ("type" in action && action.type === "STEP_BACK") {
+    if (state.past.length === 0) return state;
+
+    const previous = state.past[state.past.length - 1];
+    const newPast = state.past.slice(0, state.past.length - 1);
+
+    return {
+      past: newPast,
+      present: previous,
+      future: [state.present, ...state.future],
+    };
+  }
+
+  // Handle all other actions
+  const newPresent = learnerReducer(state.present, action as LearnerAction);
+
+  // Optimization: Don't push to past if the state hasn't changed (e.g. some ignored action)
+  if (newPresent === state.present) {
+    return state;
+  }
+
+  return {
+    past: [...state.past, state.present],
+    present: newPresent,
+    future: [],
+  };
 }
