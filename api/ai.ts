@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { LessonConcept } from "../src/lib/aiClient";
+import type { LessonConcept } from "../src/lib/aiClient.js";
 
 // Standard response helper
 function sendError(res: any, status: number, code: string, message: string) {
