@@ -40,6 +40,7 @@ export const initialLearnerState: LearnerState = {
     selectedMode: null,
     contentStatus: "idle",
     recovered: null,
+    recoveryContent: null,
   },
   mission: {
     attempted: false,

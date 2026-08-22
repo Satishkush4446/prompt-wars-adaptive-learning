@@ -11,19 +11,19 @@ Checklist for implementing the prompt-wars-adaptive-learning MVP.
 * [x] Store and load learner progress to/from `localStorage`.
 * [x] Build continuous learning screen transitions.
 * [x] Build the two-failure threshold trigger for Recovery Mode.
-* [ ] Set up server-side Vercel serverless function (`/api/ai`).
-* [ ] Secure Gemini API key on the server-side (prevent frontend exposure).
-* [ ] Connect real Gemini misconception diagnosis (AI Action 1).
-* [ ] Connect real Gemini Story recovery generation (AI Action 2).
-* [ ] Connect real Gemini Visual recovery generation (AI Action 2).
-* [ ] Connect real Gemini Memory recovery generation (AI Action 2).
+* [x] Set up server-side Vercel serverless function (`/api/ai`).
+* [x] Secure Gemini API key on the server-side (prevent frontend exposure).
+* [x] Connect real Gemini misconception diagnosis (AI Action 1).
+* [x] Connect real Gemini Story recovery generation (AI Action 2).
+* [x] Connect real Gemini Visual recovery generation (AI Action 2).
+* [x] Connect real Gemini Memory recovery generation (AI Action 2).
 * [x] Implement the related recovery re-test.
 * [x] Build the Learn-by-Doing Mission block.
-* [ ] Connect real Gemini mission evaluation (AI Action 3).
-* [ ] Update learner state based on mission outcomes.
-* [ ] Connect real Gemini Next Best Action recommendation (AI Action 4).
-* [ ] Verify that different learner behavior results in different AI actions and recommendations.
-* [ ] Add loading indicators, error boundaries, and retries for all AI connections.
+* [x] Connect real Gemini mission evaluation (AI Action 3).
+* [x] Update learner state based on mission outcomes.
+* [x] Connect real Gemini Next Best Action recommendation (AI Action 4).
+* [x] Verify that different learner behavior results in different AI actions and recommendations.
+* [x] Add loading indicators, error boundaries, and retries for all AI connections.
 
 ## P0 — Accessibility
 * [x] Make the entire learning flow fully keyboard usable (no mouse required).

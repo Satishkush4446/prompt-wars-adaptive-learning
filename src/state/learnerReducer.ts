@@ -25,7 +25,7 @@ export type LearnerAction =
   | { type: "RECOVERY_DIAGNOSIS_ERROR" }
   | { type: "SELECT_RECOVERY_MODE"; payload: { selectedMode: RecoveryMode } }
   | { type: "START_RECOVERY_CONTENT" }
-  | { type: "SET_RECOVERY_CONTENT_SUCCESS" }
+  | { type: "SET_RECOVERY_CONTENT_SUCCESS"; payload: { recoveryContent: any } }
   | { type: "RECOVERY_CONTENT_ERROR" }
   | { type: "START_RETEST" }
   | { 
@@ -193,6 +193,7 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         recovery: {
           ...state.recovery,
           contentStatus: "success",
+          recoveryContent: action.payload.recoveryContent,
         },
       };
 

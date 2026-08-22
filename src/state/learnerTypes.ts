@@ -41,6 +41,7 @@ export interface RecoveryState {
   selectedMode: RecoveryMode | null;
   contentStatus: "idle" | "loading" | "success" | "error";
   recovered: boolean | null;
+  recoveryContent: any | null;
 }
 
 export interface MissionState {
