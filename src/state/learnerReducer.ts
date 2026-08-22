@@ -6,7 +6,9 @@ import type {
   NextAction, 
   AccessibilityPreferences,
   LearningPhase,
-  GeneratedLesson
+  GeneratedLesson,
+  LearningDuration,
+  LearningMode
 } from "./learnerTypes";
 import { initialLearnerState } from "./initialState";
 
@@ -51,9 +53,14 @@ export type LearnerAction =
     }
   | { type: "RESET_LEARNING_SESSION" }
   | { type: "SET_TOPIC_INPUT"; payload: { topicInput: string } }
+  | { type: "SET_TOPIC_SUBMIT"; payload: { topicInput: string } }
+  | { type: "SET_TIME_PREFERENCE"; payload: { duration: LearningDuration | null } }
   | { type: "START_LESSON_GENERATION" }
   | { type: "SET_GENERATED_LESSON"; payload: { lesson: GeneratedLesson } }
-  | { type: "LESSON_GENERATION_ERROR" };
+  | { type: "LESSON_GENERATION_ERROR" }
+  | { type: "GO_TO_MODE_SELECTION" }
+  | { type: "SET_INITIAL_LEARNING_MODE"; payload: { mode: LearningMode } }
+  | { type: "TRY_INITIAL_CONTENT" };
 
 const clampMastery = (value: number): number => {
   return Math.max(0, Math.min(100, value));
@@ -65,6 +72,19 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
       return {
         ...state,
         topicInput: action.payload.topicInput,
+      };
+
+    case "SET_TOPIC_SUBMIT":
+      return {
+        ...state,
+        topicInput: action.payload.topicInput,
+        phase: "timePreference",
+      };
+
+    case "SET_TIME_PREFERENCE":
+      return {
+        ...state,
+        learningDurationMinutes: action.payload.duration,
       };
 
     case "START_LESSON_GENERATION":
@@ -111,6 +131,25 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
       return {
         ...state,
         phase: "intro",
+      };
+
+    case "GO_TO_MODE_SELECTION":
+      return {
+        ...state,
+        phase: "learningModeSelection",
+      };
+
+    case "SET_INITIAL_LEARNING_MODE":
+      return {
+        ...state,
+        initialLearningMode: action.payload.mode,
+        phase: "initialLearningContent",
+      };
+
+    case "TRY_INITIAL_CONTENT":
+      return {
+        ...state,
+        phase: "practice",
       };
 
     case "GO_TO_PRACTICE":

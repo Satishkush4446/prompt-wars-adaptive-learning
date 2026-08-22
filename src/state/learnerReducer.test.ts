@@ -21,9 +21,39 @@ const mockLesson = {
   topicTitle: "Python Functions",
   intro: "Learn inputs and outputs.",
   concepts: [
-    { id: "parameters", name: "Parameters", description: "Function inputs." },
-    { id: "returnValues", name: "Return values", description: "Function outputs." },
-    { id: "functionCalls", name: "Function calls", description: "Executing functions." }
+    { 
+      id: "parameters", 
+      name: "Parameters", 
+      description: "Function inputs.",
+      learningModes: {
+        text: { explanation: "Exp text", example: "Ex text", keyTakeaway: "Take text" },
+        story: { title: "Title", story: "Story text", connection: "Connection text", keyTakeaway: "Take text" },
+        visual: { title: "Title", steps: [{ label: "Label", value: "Value", explanation: "Exp" }], accessibleExplanation: "Acc explanation", keyTakeaway: "Take text" },
+        memory: { hook: "Hook", meaning: "Meaning", example: "Ex text", keyTakeaway: "Take text" }
+      }
+    },
+    { 
+      id: "returnValues", 
+      name: "Return values", 
+      description: "Function outputs.",
+      learningModes: {
+        text: { explanation: "Exp text", example: "Ex text", keyTakeaway: "Take text" },
+        story: { title: "Title", story: "Story text", connection: "Connection text", keyTakeaway: "Take text" },
+        visual: { title: "Title", steps: [{ label: "Label", value: "Value", explanation: "Exp" }], accessibleExplanation: "Acc explanation", keyTakeaway: "Take text" },
+        memory: { hook: "Hook", meaning: "Meaning", example: "Ex text", keyTakeaway: "Take text" }
+      }
+    },
+    { 
+      id: "functionCalls", 
+      name: "Function calls", 
+      description: "Executing functions.",
+      learningModes: {
+        text: { explanation: "Exp text", example: "Ex text", keyTakeaway: "Take text" },
+        story: { title: "Title", story: "Story text", connection: "Connection text", keyTakeaway: "Take text" },
+        visual: { title: "Title", steps: [{ label: "Label", value: "Value", explanation: "Exp" }], accessibleExplanation: "Acc explanation", keyTakeaway: "Take text" },
+        memory: { hook: "Hook", meaning: "Meaning", example: "Ex text", keyTakeaway: "Take text" }
+      }
+    }
   ],
   initialQuestion: {
     id: "q1",
@@ -278,5 +308,38 @@ describe("learnerReducer & storage tests", () => {
     const loadedValidState = loadLearnerState();
     expect(loadedValidState.concepts.parameters.mastery).toBe(42);
     expect(loadedValidState.phase).toBe("practice");
+  });
+
+  // Test 12: Time Preference selection preference checks
+  test("Test 12: Time preference does not alter knowledge state and resets correctly", () => {
+    state.concepts.parameters.mastery = 50;
+
+    const nextState = learnerReducer(state, {
+      type: "SET_TIME_PREFERENCE",
+      payload: { duration: 10 }
+    });
+
+    expect(nextState.learningDurationMinutes).toBe(10);
+    expect(nextState.concepts.parameters.mastery).toBe(50);
+
+    const resetState = learnerReducer(nextState, { type: "RESET_LEARNING_SESSION" });
+    expect(resetState.learningDurationMinutes).toBeNull();
+  });
+
+  // Test 13: Learning Mode selection preference checks
+  test("Test 13: Learning mode selection does not alter knowledge state and resets correctly", () => {
+    state.concepts.parameters.mastery = 50;
+
+    const nextState = learnerReducer(state, {
+      type: "SET_INITIAL_LEARNING_MODE",
+      payload: { mode: "visual" }
+    });
+
+    expect(nextState.initialLearningMode).toBe("visual");
+    expect(nextState.concepts.parameters.mastery).toBe(50);
+    expect(nextState.phase).toBe("initialLearningContent");
+
+    const resetState = learnerReducer(nextState, { type: "RESET_LEARNING_SESSION" });
+    expect(resetState.initialLearningMode).toBeNull();
   });
 });

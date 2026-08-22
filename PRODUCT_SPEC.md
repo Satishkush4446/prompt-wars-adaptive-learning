@@ -2,7 +2,15 @@
 
 This document defines the exact workflow, functional behaviors, and state machine transitions for the application.
 
-## 1. Core Workflow Stages
+## 1. The Locked Product Journey
+The complete learning workflow is organized as follows:
+```text
+Choose Topic → Optional Time Preference → Learn → Choose Learning Mode → Practice → Fail → Detect → Adapt → Recover → Apply → Evaluate → Guide
+```
+
+---
+
+## 2. Core Workflow Stages
 
 ### Stage 1: Welcome (Topic Input)
 * **Goal:** Allow the learner to enter any topic and give immediate access to customization controls.
@@ -10,14 +18,24 @@ This document defines the exact workflow, functional behaviors, and state machin
   * Headline: *"What do you want to learn?"*
   * Supporting copy: *"Enter a topic and we'll build a focused learning path that adapts as you go."*
   * Form Input: Trimmed topic text input (2-100 characters) with pre-configured suggestion shortcuts.
-  * Loading state: *"Building your learning path..."* appears during AI generation.
-  * Obvious CTA button: *"Build My Learning Path"* to trigger lesson generation.
-* **Accessibility:** The persistent Accessibility Control panel must be immediately focusable and reachable from this page.
+  * CTA Button: *"Continue"* to advance to Time Preference selection.
+* **Accessibility:** The persistent Accessibility Control panel is immediately focusable.
 
-### Stage 2: Concept Introduction
-* **Goal:** Introduce the dynamically generated concepts.
-* **Concepts Covered:** Exactly 3 AI-generated foundational concepts mapping to the selected topic.
-* **Content:** AI-generated plain language introduction with screen-reader narration Listen controls.
+### Stage 1b: Optional Time Preference
+* **Goal:** Personalize session duration based on available learning time.
+* **Options:** 5, 10, 20, 30 minutes, or Skip (sets duration to null, running the standard concise experience).
+* **Constraints:** Optional. Does not alter mastery, attempts, or knowledge state. Passed directly to `generateLesson` to shape explanation depth and mission complexity.
+* **CTA Button:** *"Build My Learning Path"* to run AI curriculum generation.
+
+### Stage 2: Learn (Concepts Overview)
+* **Goal:** Provide a custom intro and path overview of the 3 generated concepts.
+* **CTA Button:** *"Choose how to learn"* to advance to initial mode selection.
+
+### Stage 2b: Initial Learning Mode Selection
+* **Goal:** Learner selects their preferred initial presentation modality before Practice (Learner Preference).
+* **Modalities:** Text, Story, Visual (with mandatory text equivalents), or Memory.
+* **Constraints:** Does not alter mastery, attempts, or knowledge state.
+* **CTA Button:** *"Try It"* (advances to Stage 3 Practice).
 
 ### Stage 3: Practice
 * **Goal:** Test comprehension using a vetted multiple-choice question.

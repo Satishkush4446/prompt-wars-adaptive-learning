@@ -7,10 +7,49 @@ export interface AIResponse<T> {
   };
 }
 
+export interface TextModeContent {
+  explanation: string;
+  example: string;
+  keyTakeaway: string;
+}
+
+export interface StoryModeContent {
+  title: string;
+  story: string;
+  connection: string;
+  keyTakeaway: string;
+}
+
+export interface VisualStep {
+  label: string;
+  value: string;
+  explanation: string;
+}
+
+export interface VisualModeContent {
+  title: string;
+  steps: VisualStep[];
+  accessibleExplanation: string;
+  keyTakeaway: string;
+}
+
+export interface MemoryModeContent {
+  hook: string;
+  meaning: string;
+  example: string;
+  keyTakeaway: string;
+}
+
 export interface LessonConcept {
   id: string;
   name: string;
   description: string;
+  learningModes: {
+    text: TextModeContent;
+    story: StoryModeContent;
+    visual: VisualModeContent;
+    memory: MemoryModeContent;
+  };
 }
 
 export interface LessonQuestion {
@@ -94,7 +133,7 @@ export interface MissionEvaluation {
   passed: boolean;
   conceptApplication: "weak" | "developing" | "strong";
   strength: string;
-  weakness: string; // Dynamic concept ID (e.g. 'light-absorption') or 'none'
+  weakness: string; // Dynamic concept ID or 'none'
   feedback: string;
 }
 
@@ -138,7 +177,10 @@ async function callApi<T>(action: string, context: Record<string, any>): Promise
   }
 }
 
-export async function generateLesson(context: { topic: string }): Promise<GeneratedLesson> {
+export async function generateLesson(context: { 
+  topic: string; 
+  learningDurationMinutes?: number | null; 
+}): Promise<GeneratedLesson> {
   return callApi<GeneratedLesson>("generateLesson", context);
 }
 
@@ -151,6 +193,7 @@ export async function diagnoseMisconception(context: {
   attemptCount: number;
   mastery: number;
   recoveryHistory: string[];
+  initialLearningMode?: string | null;
 }): Promise<MisconceptionDiagnosis> {
   return callApi<MisconceptionDiagnosis>("diagnose", context);
 }
@@ -186,6 +229,7 @@ export async function getNextBestAction(context: {
   missionResult: boolean | null;
   missionWeakness: string | null;
   hintUsed: boolean;
+  learningDurationMinutes?: number | null;
 }): Promise<NextActionRecommendation> {
   return callApi<NextActionRecommendation>("nextAction", context);
 }

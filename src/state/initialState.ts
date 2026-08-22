@@ -36,4 +36,6 @@ export const initialLearnerState: LearnerState = {
   lesson: null,
   lessonStatus: "idle",
   topicInput: "",
+  learningDurationMinutes: null,
+  initialLearningMode: null,
 };

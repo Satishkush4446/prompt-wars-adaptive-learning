@@ -2,7 +2,10 @@ export type ConceptId = string;
 
 export type LearningPhase =
   | "welcome"
+  | "timePreference"
   | "intro"
+  | "learningModeSelection"
+  | "initialLearningContent"
   | "practice"
   | "recoveryDiagnosis"
   | "recoverySelection"
@@ -11,6 +14,9 @@ export type LearningPhase =
   | "mission"
   | "missionResult"
   | "nextAction";
+
+export type LearningDuration = 5 | 10 | 20 | 30;
+export type LearningMode = "text" | "story" | "visual" | "memory";
 
 export interface ConceptState {
   id: ConceptId;
@@ -53,7 +59,7 @@ export interface MissionState {
   passed: boolean | null;
   hintUsed: boolean;
   feedback: string | null;
-  weakness: ConceptId | null; // dynamic concept ID or null
+  weakness: ConceptId | null;
 }
 
 export type NextActionType = "practice" | "review" | "challenge";
@@ -73,10 +79,49 @@ export interface AccessibilityPreferences {
   enhancedFocus: boolean;
 }
 
+export interface TextModeContent {
+  explanation: string;
+  example: string;
+  keyTakeaway: string;
+}
+
+export interface StoryModeContent {
+  title: string;
+  story: string;
+  connection: string;
+  keyTakeaway: string;
+}
+
+export interface VisualStep {
+  label: string;
+  value: string;
+  explanation: string;
+}
+
+export interface VisualModeContent {
+  title: string;
+  steps: VisualStep[];
+  accessibleExplanation: string;
+  keyTakeaway: string;
+}
+
+export interface MemoryModeContent {
+  hook: string;
+  meaning: string;
+  example: string;
+  keyTakeaway: string;
+}
+
 export interface LessonConcept {
   id: ConceptId;
   name: string;
   description: string;
+  learningModes: {
+    text: TextModeContent;
+    story: StoryModeContent;
+    visual: VisualModeContent;
+    memory: MemoryModeContent;
+  };
 }
 
 export interface LessonQuestion {
@@ -117,4 +162,6 @@ export interface LearnerState {
   lesson: GeneratedLesson | null;
   lessonStatus: "idle" | "loading" | "success" | "error";
   topicInput: string;
+  learningDurationMinutes: LearningDuration | null;
+  initialLearningMode: LearningMode | null;
 }

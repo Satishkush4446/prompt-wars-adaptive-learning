@@ -5,7 +5,10 @@ const STORAGE_KEY = "adaptive-learning-state-v2";
 
 const VALID_PHASES = new Set([
   "welcome",
+  "timePreference",
   "intro",
+  "learningModeSelection",
+  "initialLearningContent",
   "practice",
   "recoveryDiagnosis",
   "recoverySelection",
@@ -85,6 +88,16 @@ function isValidLearnerState(data: any): data is LearnerState {
   if (typeof data.lessonStatus !== "string") return false;
   if (data.lesson !== null && typeof data.lesson !== "object") return false;
 
+  // 7. Verify time preference
+  if (data.learningDurationMinutes !== null && ![5, 10, 20, 30].includes(data.learningDurationMinutes)) {
+    return false;
+  }
+
+  // 8. Verify initial learning mode preference
+  if (data.initialLearningMode !== null && !["text", "story", "visual", "memory"].includes(data.initialLearningMode)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -99,7 +112,7 @@ export function saveLearnerState(state: LearnerState): void {
 
 export function loadLearnerState(): LearnerState {
   try {
-    // Graceful migration fallback: check and clear version 1 if present to keep storage clean
+    // Graceful migration fallback: check and clear version 1 if present
     if (localStorage.getItem("adaptive-learning-state-v1")) {
       localStorage.removeItem("adaptive-learning-state-v1");
     }

@@ -45,6 +45,27 @@ Checklist for implementing the prompt-wars-adaptive-learning MVP.
 * [x] Recommending dynamic concept Next Best Actions.
 * [x] Persist dynamic topic path and progress under v2 storage schema.
 * [x] Verify Vercel /api/ai endpoints run locally and pass validations.
+* [x] Optional 5 / 10 / 20 / 30 minute personalization.
+* [x] Skip time preference setting.
+* [x] Time preference affects lesson depth and content detail.
+* [x] Time preference affects mission task complexity.
+* [x] Time setting creates zero additional Gemini calls.
+* [x] Learn Overview concept sequence listing.
+* [x] Initial Learning Mode selection stage.
+* [x] Text learning modality.
+* [x] Story learning modality.
+* [x] Visual learning modality.
+* [x] Visual accessible screen reader equivalents.
+* [x] Memory learning modality.
+* [x] Listen narration buttons integrated with initial modes.
+* [x] Initial preference state is saved and persisted.
+* [x] Viewing educational contents does not alter mastery level.
+* [x] Initial mode is passed into struggle diagnosis context.
+* [x] Struggle recovery recommends alternative presentation styles.
+* [x] Dynamic coding topic works (e.g. Python Functions).
+* [x] Dynamic non-coding topic works (e.g. Photosynthesis).
+* [x] Complete adaptive learning journey verified.
+* [x] Accessibility regression testing passed.
 
 ## P1 — Quality & Verification
 * [x] Write unit tests for core algorithms.

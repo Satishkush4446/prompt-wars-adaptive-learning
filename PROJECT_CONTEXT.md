@@ -16,6 +16,12 @@ Build an adaptive AI learning system that notices when a learner struggles, chan
 Notice → Adapt → Recover → Apply → Guide
 ```
 
+### Critical Product Distinctions
+- **Initial Learning Mode:** The learner chooses how they want the concept presented initially (Text, Story, Visual, Memory) before starting Practice. This represents **learner preference**.
+- **Recovery Mode:** When a learner struggles (two wrong answers or manual trigger), the system automatically analyzes their mistakes and initial mode to recommend a different mode. This represents **observed adaptation**.
+- **Learning Duration (Time Preference):** An optional session preference (5, 10, 20, 30 min, or Skip) that scales lesson content length and mission complexity. It is not evidence of knowledge and never alters mastery or attempts.
+- **Listen:** Browser speech synthesis that reads text out loud on demand. It is an optional accessibility aid, not a separate learning mode.
+
 ## Accessibility Principle
 Personalized learning should consider both:
 1. **What does this learner currently understand?** (Knowledge adaptation)

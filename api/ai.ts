@@ -56,16 +56,20 @@ export default async function handler(req: any, res: any) {
     return sendError(res, 400, "UNSUPPORTED_ACTION", `Unsupported action: ${action}`);
   }
 
-  // 4. Topic Bounding
+  // 4. Input parameters validation
   if (action === "generateLesson") {
     const topic = context.topic;
     if (!topic || typeof topic !== "string" || topic.trim().length < 2 || topic.trim().length > 100) {
       return sendError(res, 400, "INVALID_REQUEST", "Topic must be between 2 and 100 characters.");
     }
+    const duration = context.learningDurationMinutes;
+    if (duration !== undefined && duration !== null && ![5, 10, 20, 30].includes(duration)) {
+      return sendError(res, 400, "INVALID_REQUEST", "Invalid learning duration parameter.");
+    }
   }
 
   // 5. Input Bounding & Size Checks
-  // Bound general strings to 1000 characters, except learnerSubmission / learnerCode which is 4000 characters max.
+  // Bound general strings to 1000 characters, except learnerSubmission / learnerCode / submission which is 4000 characters max.
   const learnerCodeMax = 4000;
   const generalMax = 1000;
 
@@ -96,15 +100,76 @@ export default async function handler(req: any, res: any) {
     let responseSchema: any = null;
 
     if (action === "generateLesson") {
+      const duration = context.learningDurationMinutes;
+      const timeDescription = duration 
+        ? `The learner has explicitly selected a duration preference of ${duration} minutes. You must scale the explanation depth, visual steps, example complexity, and mission difficulty to fit within a ${duration}-minute session. A 5-minute session should have very brief explanations, simple examples, and a lightweight mission, whereas a 30-minute session can have deeper details, richer examples, and a substantial mission.`
+        : "No explicit time constraint was provided. Generate the standard concise learning experience.";
+
       systemInstruction += ` You are an expert instructional designer and teacher.
 Create a beginner-friendly learning path for the specified topic.
 You must generate exactly 3 foundational concepts (with lowercase, alphanumeric-hyphen-only IDs).
+${timeDescription}
+For EACH concept, you must provide teaching content in exactly four modalities: Text, Story, Visual, and Memory under the 'learningModes' field.
 Provide a short intro to the topic, an initial multiple-choice question testing the first concept, and a mini-mission (learn-by-doing task) with starter content and an evaluation rubric.
 Ensure the rubric focuses on assessing the concept without executing any code.`;
 
       userPrompt = `
 Generate a beginner-friendly lesson path for the topic: ${context.topic}
 `;
+
+      const modeTextSchema = {
+        type: Type.OBJECT,
+        properties: {
+          explanation: { type: Type.STRING, description: "A clear, concise explanation of the concept." },
+          example: { type: Type.STRING, description: "A simple code block or practical example." },
+          keyTakeaway: { type: Type.STRING, description: "A single sentence summary to remember." }
+        },
+        required: ["explanation", "example", "keyTakeaway"]
+      };
+
+      const modeStorySchema = {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING, description: "Engaging title of the story." },
+          story: { type: Type.STRING, description: "A simple, engaging analogy or story." },
+          connection: { type: Type.STRING, description: "How the analogy directly connects to the concept." },
+          keyTakeaway: { type: Type.STRING, description: "A single sentence summary." }
+        },
+        required: ["title", "story", "connection", "keyTakeaway"]
+      };
+
+      const modeVisualSchema = {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING, description: "Visual flow diagram title." },
+          steps: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                label: { type: Type.STRING, description: "Step name." },
+                value: { type: Type.STRING, description: "Value or state inside." },
+                explanation: { type: Type.STRING, description: "What happens in this step." }
+              },
+              required: ["label", "value", "explanation"]
+            }
+          },
+          accessibleExplanation: { type: Type.STRING, description: "Mandatory. Rich text explanation of the visual diagram for screen readers." },
+          keyTakeaway: { type: Type.STRING }
+        },
+        required: ["title", "steps", "accessibleExplanation", "keyTakeaway"]
+      };
+
+      const modeMemorySchema = {
+        type: Type.OBJECT,
+        properties: {
+          hook: { type: Type.STRING, description: "Mnemonic shortcut acronym or phrase." },
+          meaning: { type: Type.STRING, description: "What each part stands for." },
+          example: { type: Type.STRING, description: "Short example tip in action." },
+          keyTakeaway: { type: Type.STRING }
+        },
+        required: ["hook", "meaning", "example", "keyTakeaway"]
+      };
 
       responseSchema = {
         type: Type.OBJECT,
@@ -116,26 +181,36 @@ Generate a beginner-friendly lesson path for the topic: ${context.topic}
             items: {
               type: Type.OBJECT,
               properties: {
-                id: { type: Type.STRING, description: "Normalized unique identifier using lowercase, alphanumeric, and hyphens only (e.g. 'osmosis-rate')." },
-                name: { type: Type.STRING, description: "Friendly title of the concept (e.g. 'Rate of Osmosis')." },
-                description: { type: Type.STRING, description: "A concise 1-sentence definition of this concept." }
+                id: { type: Type.STRING, description: "Normalized lowercase concept ID (letters, numbers, hyphens only)." },
+                name: { type: Type.STRING, description: "Title of the concept." },
+                description: { type: Type.STRING, description: "1-sentence description." },
+                learningModes: {
+                  type: Type.OBJECT,
+                  properties: {
+                    text: modeTextSchema,
+                    story: modeStorySchema,
+                    visual: modeVisualSchema,
+                    memory: modeMemorySchema
+                  },
+                  required: ["text", "story", "visual", "memory"]
+                }
               },
-              required: ["id", "name", "description"]
+              required: ["id", "name", "description", "learningModes"]
             }
           },
           initialQuestion: {
             type: Type.OBJECT,
             properties: {
               id: { type: Type.STRING, description: "Question ID." },
-              conceptId: { type: Type.STRING, description: "Must match the exact ID of the first concept in the concepts array above." },
-              prompt: { type: Type.STRING, description: "The MCQ question prompt text." },
+              conceptId: { type: Type.STRING, description: "Must match the exact ID of the first concept in the concepts array." },
+              prompt: { type: Type.STRING, description: "MCQ question prompt text." },
               options: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "Exactly 4 multiple-choice answer options."
+                description: "Exactly 4 options."
               },
-              correctAnswer: { type: Type.STRING, description: "The correct option text, which must exactly match one of the items in the options array." },
-              retryHint: { type: Type.STRING, description: "A friendly hint shown if they get it wrong." }
+              correctAnswer: { type: Type.STRING, description: "Correct option text matching one option item exactly." },
+              retryHint: { type: Type.STRING, description: "Hint displayed on incorrect answer." }
             },
             required: ["id", "conceptId", "prompt", "options", "correctAnswer", "retryHint"]
           },
@@ -143,13 +218,13 @@ Generate a beginner-friendly lesson path for the topic: ${context.topic}
             type: Type.OBJECT,
             properties: {
               title: { type: Type.STRING },
-              goal: { type: Type.STRING, description: "What the student needs to accomplish in their written response/code." },
-              instructions: { type: Type.STRING, description: "Step-by-step instructions on what to write in the textarea." },
-              starterContent: { type: Type.STRING, description: "Starter text or template code loaded into the editor." },
+              goal: { type: Type.STRING, description: "Goal of the task." },
+              instructions: { type: Type.STRING, description: "Instructions on what to write in the textarea." },
+              starterContent: { type: Type.STRING, description: "Starter template code or text." },
               rubric: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "List of explicit, simple criteria to evaluate the submission textually."
+                description: "Criteria list to evaluate textually."
               }
             },
             required: ["title", "goal", "instructions", "starterContent", "rubric"]
@@ -159,18 +234,20 @@ Generate a beginner-friendly lesson path for the topic: ${context.topic}
       };
 
     } else if (action === "diagnose") {
-      systemInstruction += ` You are an expert CS and general science tutor diagnosing conceptual misunderstandings.
-Given a topic, question, correct answer, and the user's wrong answer history, diagnose their specific misconception.
+      const prevMode = context.initialLearningMode || "none";
+      systemInstruction += ` You are an expert science and general learning tutor diagnosing conceptual misunderstandings.
+Given a topic, question, correct answer, the user's wrong answer history, and the initial learning mode they used, diagnose their specific misconception.
 Do not assume details not provided in the inputs.`;
       
       userPrompt = `
-Topic: ${context.topic || "Python Functions"}
-Concept: ${context.concept || "Parameters"}
+Topic: ${context.topic || "General"}
+Concept: ${context.concept || ""}
 Question: ${context.question || ""}
 Correct Answer: ${context.correctAnswer || ""}
 Learner Wrong Answers: ${JSON.stringify(context.learnerAnswers || [])}
 Attempt Count: ${context.attemptCount || 2}
 Current Mastery Score: ${context.mastery || 0}%
+Initial Learning Mode Used: ${prevMode.toUpperCase()}
 Recent Recovery History: ${JSON.stringify(context.recoveryHistory || [])}
 `;
 
@@ -368,6 +445,14 @@ Student States:
         if (!concept.id || typeof concept.id !== "string" || !/^[a-z0-9\-]+$/.test(concept.id)) {
           throw new Error(`Invalid concept ID: ${concept.id}`);
         }
+        const modes = concept.learningModes;
+        if (!modes || !modes.text || !modes.story || !modes.visual || !modes.memory) {
+          throw new Error(`Concept ${concept.id} is missing initial learningModes contents`);
+        }
+        // Visual mode verification
+        if (!modes.visual.accessibleExplanation || modes.visual.accessibleExplanation.trim().length === 0) {
+          throw new Error(`Visual Mode in concept ${concept.id} is missing accessibleExplanation`);
+        }
       }
       // Check correctAnswer is in options and question conceptId matches
       const initialQ = parsedData.initialQuestion;
@@ -424,7 +509,7 @@ Student States:
     console.error(`[AI ERROR] Action: ${action} | Latency: ${Date.now() - startTimestamp}ms | Error:`, err);
     
     // Distinguish parsing or schema validation errors
-    if (err instanceof SyntaxError || err.message?.includes("Missing") || err.message?.includes("Invalid") || err.message?.includes("not present") || err.message?.includes("rubric")) {
+    if (err instanceof SyntaxError || err.message?.includes("Missing") || err.message?.includes("Invalid") || err.message?.includes("not present") || err.message?.includes("rubric") || err.message?.includes("learningModes") || err.message?.includes("accessibleExplanation")) {
       return sendError(res, 502, "AI_INVALID_RESPONSE", `The AI generated an invalid response: ${err.message}`);
     }
 
