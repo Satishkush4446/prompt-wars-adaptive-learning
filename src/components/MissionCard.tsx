@@ -25,7 +25,7 @@ export default function MissionCard({
   onUseHint,
   onSubmitMission,
   onDevelopmentMockEvaluation,
-  lang = "en-US",
+  lang = "English",
 }: MissionCardProps) {
   const [submissionText, setSubmissionText] = useState<string>("");
 
@@ -63,12 +63,13 @@ export default function MissionCard({
     <div className="learning-card mission-card">
       <div className="card-header mission-header">
         <div className="header-badges">
-          <span className="card-badge mission-badge">Learn-by-Doing Mission</span>
+          <span className="card-badge mission-badge">MISSION UNLOCKED</span>
         </div>
         <ListenButton text={speechText} lang={lang} />
       </div>
 
       <h3 className="mission-title">{mission.title}</h3>
+      <p className="text-secondary text-sm mt-1 font-medium">Apply what you learned.</p>
       
       <div className="mission-instructions">
         <p><strong>Goal:</strong> {mission.goal}</p>

@@ -12,7 +12,7 @@ export default function NextActionCard({
   nextAction,
   onReset,
   onDevelopmentMockNextAction,
-  lang = "en-US",
+  lang = "English",
 }: NextActionCardProps) {
   const handleMockNextAction = (type: "practice" | "review" | "challenge") => {
     const mockActions: Record<string, NextAction> = {
@@ -48,11 +48,12 @@ export default function NextActionCard({
   return (
     <div className="learning-card next-action-card">
       <div className="card-header next-action-header">
-        <span className="card-badge next-action-badge">Next Step</span>
+        <span className="card-badge next-action-badge">NEXT BEST ACTION</span>
         {nextAction && <ListenButton text={speechText} lang={lang} />}
       </div>
 
       <h3 className="next-action-title">Your next best step</h3>
+      <p className="text-secondary text-sm mt-1 font-medium">Based on how you learned today...</p>
 
       {nextAction ? (
         <div className="next-action-content">

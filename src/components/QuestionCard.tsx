@@ -26,7 +26,7 @@ export default function QuestionCard({
   onSubmitAnswer,
   onContinue,
   onHelpRequest,
-  lang = "en-US",
+  lang = "English",
 }: QuestionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [submitted, setSubmitted] = useState<boolean>(false);

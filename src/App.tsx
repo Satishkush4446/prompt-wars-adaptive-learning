@@ -474,8 +474,24 @@ function App() {
       {/* Persistent App Header */}
       <header className="app-header">
         <div className="header-brand">
-          <span className="brand-logo" aria-hidden="true">⇄</span>
-          <h1>ADAPTIQ <span className="brand-sub">Adaptive Learning Intelligence</span></h1>
+          <svg className="brand-logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M16 4L6 24H10.5L16 13L21.5 24H26L16 4Z" fill="url(#brand-grad)" />
+            <path d="M12.5 17H19.5L16 10L12.5 17Z" fill="url(#brand-grad-light)" />
+            <defs>
+              <linearGradient id="brand-grad" x1="6" y1="4" x2="26" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#7C3AED" />
+                <stop offset="1" stopColor="#3B82F6" />
+              </linearGradient>
+              <linearGradient id="brand-grad-light" x1="12.5" y1="10" x2="19.5" y2="17" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#A78BFA" />
+                <stop offset="1" stopColor="#60A5FA" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div className="brand-text-wrapper">
+            <span className="brand-name">ADAPTIQ</span>
+            <span className="brand-sub">Adaptive Learning Intelligence</span>
+          </div>
         </div>
 
         <div className="header-actions">
@@ -552,6 +568,10 @@ function App() {
               </button>
             </div>
           )}
+
+          <button type="button" className="btn-darkmode-dec" aria-hidden="true">
+            <span className="dec-moon-icon">🌙</span>
+          </button>
         </div>
       </header>
 
@@ -567,9 +587,7 @@ function App() {
                 aria-current={isActive ? "step" : undefined}
               >
                 <span className="stage-dot" />
-                <span className="stage-name">
-                  {isActive ? `Current: ${stage}` : stage}
-                </span>
+                <span className="stage-name">{stage}</span>
               </li>
             );
           })}
@@ -581,43 +599,110 @@ function App() {
         <LearnerStateCard state={state} />
       </div>
 
+      {/* Introduction / Journey Banner */}
+      {state.phase === "welcome" && (
+        <div className="journey-banner">
+          <div className="journey-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="journey-banner-svg">
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" />
+              <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" />
+            </svg>
+          </div>
+          <div className="journey-text">
+            <h3>Your adaptive learning journey starts here</h3>
+            <p>AdaptiQ observes how you learn and adapts to help you master any concept.</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Experience Container */}
       <main className="main-content">
         
         {/* Stage 1: Welcome Topic Entry */}
         {state.phase === "welcome" && (
           <div className="welcome-stage centered-card">
-            <div className="brand-hero text-center mb-6">
-              <span className="brand-badge-premium">ADAPTIQ</span>
-              <h2 className="welcome-headline-premium">Learn differently.<br/>Improve intelligently.</h2>
-              <p className="welcome-subtitle-premium">Adaptive Learning Intelligence</p>
-              <p className="welcome-desc mt-4">
-                AdaptiQ learns how you learn. When you struggle, it changes the way a concept is taught and guides you toward what to do next.
-              </p>
-              <div className="branding-philosophy mt-4 text-xs font-mono text-secondary">
-                Personalization tells us how to start. &bull; Performance tells us how to adapt.
+            <div className="brand-hero">
+              <div className="hero-text-col">
+                <span className="brand-badge-premium">ADAPTIQ</span>
+                <h2 className="welcome-headline-premium">
+                  Learn differently.<br />
+                  <span className="gradient-text">Improve intelligently.</span>
+                </h2>
+                <p className="welcome-subtitle-premium">Adaptive Learning Intelligence</p>
+                <p className="welcome-desc">
+                  AdaptiQ learns how you learn. When you struggle, it changes the way a concept is taught and guides you toward what to do next.
+                </p>
+                <div className="branding-philosophy">
+                  Personalization tells us how to start. • Performance tells us how to adapt.
+                </div>
+              </div>
+
+              <div className="hero-visual-col" aria-hidden="true">
+                <div className="brain-visual">
+                  <div className="brain-glow" />
+                  <div className="orbit-ring" />
+                  <div className="brain-core" />
+                  
+                  <div className="orbit-dot dot-target">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="6" />
+                      <circle cx="12" cy="12" r="2" />
+                    </svg>
+                  </div>
+                  <div className="orbit-dot dot-book">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                    </svg>
+                  </div>
+                  <div className="orbit-dot dot-gear">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10" />
+                      <line x1="12" y1="20" x2="12" y2="4" />
+                      <line x1="6" y1="20" x2="6" y2="14" />
+                      <path d="M3 3l9 9 9-9" />
+                    </svg>
+                  </div>
+                  <div className="orbit-dot dot-bulb">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
+                      <line x1="9" y1="18" x2="15" y2="18" />
+                      <line x1="10" y1="22" x2="14" y2="22" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="divider-subtle my-6" />
+            <div className="divider-subtle" />
 
             <h3 className="section-label-premium">What do you want to learn?</h3>
+            <p className="topic-supporting-text">Enter any topic you're curious about</p>
 
-            <form onSubmit={handleTopicSubmit} className="topic-input-form mt-4 w-full max-w-lg">
-              <div className="form-group flex flex-col gap-2 text-left">
-                <label htmlFor="topic-input-field" className="topic-input-label font-bold">
+            <form onSubmit={handleTopicSubmit} className="topic-input-form">
+              <div className="form-group flex flex-col gap-2 text-center items-center">
+                <label htmlFor="topic-input-field" className="sr-only">
                   Target Topic
                 </label>
-                <input
-                  id="topic-input-field"
-                  type="text"
-                  className="topic-text-input"
-                  placeholder="e.g. Fractions, Photosynthesis, Python Functions..."
-                  value={topicText}
-                  onChange={(e) => setTopicText(e.target.value)}
-                  maxLength={100}
-                  required
-                />
+                <div className="topic-input-wrapper">
+                  <span className="topic-search-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                  </span>
+                  <input
+                    id="topic-input-field"
+                    type="text"
+                    className="topic-text-input"
+                    placeholder="e.g. Fractions, Photosynthesis, Python Functions..."
+                    value={topicText}
+                    onChange={(e) => setTopicText(e.target.value)}
+                    maxLength={100}
+                    required
+                  />
+                </div>
                 {inputError && (
                   <p className="error-text text-danger text-sm mt-1" role="alert">
                     ⚠️ {inputError}
@@ -629,34 +714,108 @@ function App() {
                 type="submit"
                 className="btn btn-primary btn-large w-full mt-6"
               >
-                Continue
+                Continue &rarr;
               </button>
             </form>
 
-            <div className="suggested-topics-container mt-6">
-              <span className="suggested-label text-sm font-semibold">Suggested Topics:</span>
-              <div className="suggestions-list flex gap-2 mt-2 justify-center">
+            <div className="suggested-topics-container">
+              <span className="suggested-label">Or try a popular topic</span>
+              <div className="suggestions-list">
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm suggestion-tag-btn"
+                  className="suggestion-tag-btn"
                   onClick={() => { setTopicText("Python Functions"); dispatch({ type: "SET_TOPIC_SUBMIT", payload: { topicInput: "Python Functions" } }); }}
                 >
-                  Python Functions
+                  <span className="suggestion-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                    </svg>
+                  </span> Python Functions
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm suggestion-tag-btn"
+                  className="suggestion-tag-btn"
                   onClick={() => { setTopicText("Photosynthesis"); dispatch({ type: "SET_TOPIC_SUBMIT", payload: { topicInput: "Photosynthesis" } }); }}
                 >
-                  Photosynthesis
+                  <span className="suggestion-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 3c-1.5 3.5-3.5 7-7 10" />
+                      <path d="M19 3c-2.3 4-4.5 6-7 7.5" />
+                      <path d="M9 21c0-3.5 2.5-6 6-6" />
+                    </svg>
+                  </span> Photosynthesis
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm suggestion-tag-btn"
+                  className="suggestion-tag-btn"
                   onClick={() => { setTopicText("Fractions"); dispatch({ type: "SET_TOPIC_SUBMIT", payload: { topicInput: "Fractions" } }); }}
                 >
-                  Fractions
+                  <span className="suggestion-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 2v10H2" />
+                      <path d="M12 12l7 7" />
+                    </svg>
+                  </span> Fractions
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Value Strip explaining AdaptiQ differences */}
+        {state.phase === "welcome" && (
+          <div className="value-strip">
+            <div className="value-item">
+              <div className="value-icon observe" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <div className="value-text">
+                <h4>OBSERVES YOU</h4>
+                <p>Tracks how you learn in real time.</p>
+              </div>
+            </div>
+            <div className="value-item">
+              <div className="value-icon adapt" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 3 21 3 21 8" />
+                  <line x1="4" y1="20" x2="21" y2="3" />
+                  <polyline points="21 16 21 21 16 21" />
+                  <line x1="15" y1="15" x2="21" y2="21" />
+                  <line x1="4" y1="4" x2="9" y2="9" />
+                </svg>
+              </div>
+              <div className="value-text">
+                <h4>ADAPTS INSTANTLY</h4>
+                <p>Changes explanations when you struggle.</p>
+              </div>
+            </div>
+            <div className="value-item">
+              <div className="value-icon measure" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+              </div>
+              <div className="value-text">
+                <h4>MEASURES GROWTH</h4>
+                <p>Checks if new approaches actually work.</p>
+              </div>
+            </div>
+            <div className="value-item">
+              <div className="value-icon guide" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                </svg>
+              </div>
+              <div className="value-text">
+                <h4>GUIDES NEXT STEPS</h4>
+                <p>Recommends exactly what you should do next.</p>
               </div>
             </div>
           </div>
@@ -1326,6 +1485,11 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* App Footer */}
+      <footer className="app-footer">
+        <p>Learn differently. Improve intelligently. • <span className="footer-brand">AdaptiQ</span></p>
+      </footer>
 
       {/* Global screen reader polite phase announcer */}
       <div className="sr-only" role="status" aria-live="polite">
