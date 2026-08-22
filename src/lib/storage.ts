@@ -5,6 +5,7 @@ const STORAGE_KEY = "adaptive-learning-state-v2";
 
 const VALID_PHASES = new Set([
   "welcome",
+  "languagePreference",
   "timePreference",
   "intro",
   "learningModeSelection",
@@ -95,6 +96,19 @@ function isValidLearnerState(data: any): data is LearnerState {
 
   // 8. Verify initial learning mode preference
   if (data.initialLearningMode !== null && !["text", "story", "visual", "memory"].includes(data.initialLearningMode)) {
+    return false;
+  }
+
+  // 9. Verify learning language preference
+  if (typeof data.learningLanguage !== "string") {
+    return false;
+  }
+  const langTrimmed = data.learningLanguage.trim();
+  if (langTrimmed.length < 2 || langTrimmed.length > 50) {
+    return false;
+  }
+  const controlCharsRegex = /[\u0000-\u001F\u007F-\u009F]/;
+  if (controlCharsRegex.test(data.learningLanguage)) {
     return false;
   }
 

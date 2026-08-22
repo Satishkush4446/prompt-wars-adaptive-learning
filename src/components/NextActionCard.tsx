@@ -5,12 +5,14 @@ interface NextActionCardProps {
   nextAction: NextAction | null;
   onReset: () => void;
   onDevelopmentMockNextAction: (action: NextAction) => void;
+  lang?: string;
 }
 
 export default function NextActionCard({
   nextAction,
   onReset,
   onDevelopmentMockNextAction,
+  lang = "en-US",
 }: NextActionCardProps) {
   const handleMockNextAction = (type: "practice" | "review" | "challenge") => {
     const mockActions: Record<string, NextAction> = {
@@ -47,7 +49,7 @@ export default function NextActionCard({
     <div className="learning-card next-action-card">
       <div className="card-header next-action-header">
         <span className="card-badge next-action-badge">Next Step</span>
-        {nextAction && <ListenButton text={speechText} />}
+        {nextAction && <ListenButton text={speechText} lang={lang} />}
       </div>
 
       <h3 className="next-action-title">Your next best step</h3>

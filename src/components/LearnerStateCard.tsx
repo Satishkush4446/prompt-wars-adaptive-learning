@@ -5,11 +5,10 @@ interface LearnerStateCardProps {
 }
 
 export function getMasteryLabel(mastery: number): string {
-  if (mastery === 0) return "Not assessed";
-  if (mastery <= 39) return "Building";
-  if (mastery <= 69) return "Developing";
-  if (mastery <= 89) return "Strong";
-  return "Mastered";
+  if (mastery === 0) return "Needs Practice";
+  if (mastery <= 39) return "Developing";
+  if (mastery <= 69) return "Improving";
+  return "Strong";
 }
 
 export default function LearnerStateCard({ state }: LearnerStateCardProps) {
@@ -22,16 +21,22 @@ export default function LearnerStateCard({ state }: LearnerStateCardProps) {
   }
 
   const concepts = Object.values(state.concepts);
+  const activeConceptObj = state.concepts[state.currentConcept];
 
   return (
     <div className="learner-state-card" aria-label="Current Learner Knowledge State">
       <h2 className="sr-only">Knowledge State Summary</h2>
+      
+      <div className="system-observing-badge" aria-live="polite">
+        <span className="pulsing-dot" /> Observational Mode: Active
+      </div>
+
       <div className="concepts-grid">
         {concepts.map((concept) => {
           const info = state.concepts[concept.id];
           if (!info) return null;
           const label = getMasteryLabel(info.mastery);
-          const ariaLabelText = `${concept.name} — ${label}, ${info.mastery} percent mastery.`;
+          const ariaLabelText = `${concept.name} — ${label}.`;
           
           return (
             <div 
@@ -40,9 +45,12 @@ export default function LearnerStateCard({ state }: LearnerStateCardProps) {
               aria-label={ariaLabelText}
             >
               <div className="concept-meta">
-                <span className="concept-name">{concept.name}</span>
+                <span className="concept-name">
+                  {state.currentConcept === concept.id && <span className="active-concept-indicator">▶ </span>}
+                  {concept.name}
+                </span>
                 <span className={`mastery-badge mastery-${label.toLowerCase().replace(" ", "-")}`}>
-                  {label} ({info.mastery}%)
+                  {label}
                 </span>
               </div>
               <div 
@@ -55,13 +63,19 @@ export default function LearnerStateCard({ state }: LearnerStateCardProps) {
               >
                 <div 
                   className="progress-bar-fill" 
-                  style={{ width: `${info.mastery}%` }}
+                  style={{ width: `${info.mastery || 5}%` }} // Ensure a tiny visual fill even for 0%
                 />
               </div>
             </div>
           );
         })}
       </div>
+
+      {state.recovery.triggered && activeConceptObj && (
+        <div className="struggle-focus-indicator mt-3 text-xs bg-amber-50 text-amber-800 p-2 rounded border border-amber-200">
+          ⚠️ <strong>Active Struggle Detected:</strong> Currently resolving misconceptions for <em>{activeConceptObj.name}</em>.
+        </div>
+      )}
     </div>
   );
 }

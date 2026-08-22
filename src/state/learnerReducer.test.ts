@@ -76,7 +76,6 @@ describe("learnerReducer & storage tests", () => {
   let state: LearnerState;
 
   beforeEach(() => {
-    // Initialize concepts state dynamically using mockLesson
     state = learnerReducer(initialLearnerState, {
       type: "SET_GENERATED_LESSON",
       payload: { lesson: mockLesson }
@@ -191,7 +190,7 @@ describe("learnerReducer & storage tests", () => {
 
     expect(nextState.concepts.parameters.mastery).toBe(2); // 10 - 8
     expect(nextState.recovery.recovered).toBe(false);
-    expect(nextState.phase).toBe("retest"); // Preserved failed recovery state without loop
+    expect(nextState.phase).toBe("retest");
   });
 
   // Test 7: Mission pass
@@ -258,7 +257,6 @@ describe("learnerReducer & storage tests", () => {
   test("Test 10: Mastery clamping logic works (never < 0, never > 100)", () => {
     state.concepts.parameters.mastery = 95;
 
-    // Correct answer pushes over 100
     let nextState = learnerReducer(state, {
       type: "SUBMIT_PRACTICE_ANSWER",
       payload: {
@@ -270,7 +268,6 @@ describe("learnerReducer & storage tests", () => {
     });
     expect(nextState.concepts.parameters.mastery).toBe(100);
 
-    // Incorrect answer pushes below 0
     state.concepts.parameters.mastery = 5;
     nextState = learnerReducer(state, {
       type: "SUBMIT_PRACTICE_ANSWER",
@@ -286,22 +283,18 @@ describe("learnerReducer & storage tests", () => {
 
   // Test 11: Invalid localStorage data fallback
   test("Test 11: Invalid localStorage data does not crash and falls back safely", () => {
-    // 1. Missing data should return initial state
     clearLearnerState();
     const loadedFromEmpty = loadLearnerState();
     expect(loadedFromEmpty).toEqual(initialLearnerState);
 
-    // 2. Corrupt string that fails JSON.parse should fallback safely
     localStorage.setItem("adaptive-learning-state-v2", "corrupt-json-{");
     const loadedFromCorrupt = loadLearnerState();
     expect(loadedFromCorrupt).toEqual(initialLearnerState);
 
-    // 3. Valid JSON but invalid structure (missing fields or wrong types) should fallback safely
     localStorage.setItem("adaptive-learning-state-v2", JSON.stringify({ phase: "invalidPhase", concepts: {} }));
     const loadedFromInvalid = loadLearnerState();
     expect(loadedFromInvalid).toEqual(initialLearnerState);
 
-    // 4. Valid save and load should work perfectly
     state.concepts.parameters.mastery = 42;
     state.phase = "practice";
     saveLearnerState(state);
@@ -341,5 +334,37 @@ describe("learnerReducer & storage tests", () => {
 
     const resetState = learnerReducer(nextState, { type: "RESET_LEARNING_SESSION" });
     expect(resetState.initialLearningMode).toBeNull();
+  });
+
+  // Test 14: Language Preference selection checks
+  test("Test 14: Default language is English and free-text updates work for any language", () => {
+    expect(state.learningLanguage).toBe("English");
+
+    // SET_TOPIC_SUBMIT transitions to languagePreference phase
+    const topicState = learnerReducer(state, {
+      type: "SET_TOPIC_SUBMIT",
+      payload: { topicInput: "Photosynthesis" }
+    });
+    expect(topicState.phase).toBe("languagePreference");
+
+    // SET_LANGUAGE_PREFERENCE sets language and transitions to timePreference phase
+    const testLanguages = ["English", "Spanish", "Hindi", "Tamil", "German"];
+    for (const lang of testLanguages) {
+      const langState = learnerReducer(topicState, {
+        type: "SET_LANGUAGE_PREFERENCE",
+        payload: { language: lang }
+      });
+      expect(langState.learningLanguage).toBe(lang);
+      expect(langState.phase).toBe("timePreference");
+      expect(langState.concepts.parameters?.mastery || 0).toBe(0);
+    }
+
+    // RESET_LEARNING_SESSION clears language back to English
+    const finalLangState = learnerReducer(topicState, {
+      type: "SET_LANGUAGE_PREFERENCE",
+      payload: { language: "German" }
+    });
+    const resetState = learnerReducer(finalLangState, { type: "RESET_LEARNING_SESSION" });
+    expect(resetState.learningLanguage).toBe("English");
   });
 });

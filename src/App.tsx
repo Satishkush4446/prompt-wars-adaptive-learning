@@ -10,6 +10,7 @@ import {
   generateLesson
 } from "./lib/aiClient";
 import type { RecoveryMode as RecoveryModeType, LearningDuration, LearningMode } from "./state/learnerTypes";
+import { resolveSpeechLocale } from "./hooks/useSpeechSynthesis";
 
 import LearnerStateCard from "./components/LearnerStateCard";
 import QuestionCard from "./components/QuestionCard";
@@ -32,13 +33,32 @@ function App() {
   const [inputError, setInputError] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<LearningDuration | null>(null);
 
+  const [langInput, setLangInput] = useState<string>("English");
+  const [langError, setLangError] = useState<string | null>(null);
+
   const a11yButtonRef = useRef<HTMLButtonElement>(null);
   const a11yMenuRef = useRef<HTMLDivElement>(null);
+
+  const resolvedLocale = resolveSpeechLocale(state.learningLanguage);
+  const resolvedHTMLCode = resolvedLocale ? resolvedLocale.split("-")[0] : "en";
 
   // Sync state to localStorage
   useEffect(() => {
     saveLearnerState(state);
   }, [state]);
+
+  // Sync langInput on phase transitions
+  useEffect(() => {
+    if (state.phase === "languagePreference") {
+      setLangInput(state.learningLanguage || "English");
+      setLangError(null);
+    }
+  }, [state.phase, state.learningLanguage]);
+
+  // Apply HTML lang attribute
+  useEffect(() => {
+    document.documentElement.setAttribute("lang", resolvedHTMLCode);
+  }, [resolvedHTMLCode]);
 
   // Apply accessibility classes to root HTML element
   useEffect(() => {
@@ -132,6 +152,23 @@ function App() {
     dispatch({ type: "SET_TOPIC_SUBMIT", payload: { topicInput: finalTopic } });
   };
 
+  // Language Selection Form Submit
+  const handleLangSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = langInput.trim();
+    if (trimmed.length < 2 || trimmed.length > 50) {
+      setLangError("Language must be between 2 and 50 characters.");
+      return;
+    }
+    const controlCharsRegex = /[\u0000-\u001F\u007F-\u009F]/;
+    if (controlCharsRegex.test(langInput)) {
+      setLangError("Language must not contain control characters.");
+      return;
+    }
+    setLangError(null);
+    dispatch({ type: "SET_LANGUAGE_PREFERENCE", payload: { language: trimmed } });
+  };
+
   // Lesson Generation trigger
   const handleBuildLesson = async (durationVal: LearningDuration | null) => {
     setApiError(null);
@@ -141,7 +178,8 @@ function App() {
     try {
       const lesson = await generateLesson({ 
         topic: state.topicInput, 
-        learningDurationMinutes: durationVal 
+        learningDurationMinutes: durationVal,
+        learningLanguage: state.learningLanguage
       });
       dispatch({ type: "SET_GENERATED_LESSON", payload: { lesson } });
     } catch (error: any) {
@@ -172,7 +210,8 @@ function App() {
             attemptCount: wrongAnswers.length,
             mastery: state.concepts[state.currentConcept]?.mastery || 0,
             recoveryHistory: [],
-            initialLearningMode: state.initialLearningMode
+            initialLearningMode: state.initialLearningMode,
+            learningLanguage: state.learningLanguage
           });
 
           dispatch({
@@ -190,7 +229,7 @@ function App() {
       };
       runDiagnosis();
     }
-  }, [state.phase, state.recovery.diagnosisStatus, state.currentConcept, state.attempts, state.lesson, state.initialLearningMode]);
+  }, [state.phase, state.recovery.diagnosisStatus, state.currentConcept, state.attempts, state.lesson, state.initialLearningMode, state.learningLanguage]);
 
   // 2. Real Recovery Content Selection & Generation
   const handleSelectMode = async (selectedMode: RecoveryModeType) => {
@@ -211,7 +250,8 @@ function App() {
         learnerAnswers: wrongAnswers,
         misconception: state.recovery.misconception || "Struggling with conceptual workflow basics",
         mastery: state.concepts[state.currentConcept]?.mastery || 0,
-        selectedMode
+        selectedMode,
+        learningLanguage: state.learningLanguage
       });
 
       // Visual Mode verification: MUST include non-empty accessibleExplanation
@@ -245,7 +285,8 @@ function App() {
         missionGoal: state.lesson.mission.goal,
         rubric: state.lesson.mission.rubric,
         learnerSubmission: state.mission.submission,
-        learnerState: state
+        learnerState: state,
+        learningLanguage: state.learningLanguage
       });
 
       let finalWeakness = null;
@@ -282,7 +323,8 @@ function App() {
         missionResult: state.mission.passed,
         missionWeakness: state.mission.weakness,
         hintUsed: state.mission.hintUsed,
-        learningDurationMinutes: state.learningDurationMinutes
+        learningDurationMinutes: state.learningDurationMinutes,
+        learningLanguage: state.learningLanguage
       });
 
       let finalRec = recommendation;
@@ -307,6 +349,7 @@ function App() {
     const { phase } = state;
     if (
       phase === "welcome" ||
+      phase === "languagePreference" ||
       phase === "timePreference" ||
       phase === "intro" ||
       phase === "learningModeSelection" ||
@@ -427,12 +470,12 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" lang={resolvedHTMLCode}>
       {/* Persistent App Header */}
       <header className="app-header">
         <div className="header-brand">
           <span className="brand-logo" aria-hidden="true">⇄</span>
-          <h1>Adapt <span className="brand-sub">AI Learning</span></h1>
+          <h1>ADAPTIQ <span className="brand-sub">Adaptive Learning Intelligence</span></h1>
         </div>
 
         <div className="header-actions">
@@ -544,10 +587,21 @@ function App() {
         {/* Stage 1: Welcome Topic Entry */}
         {state.phase === "welcome" && (
           <div className="welcome-stage centered-card">
-            <h2 className="welcome-headline">What do you want to learn?</h2>
-            <p className="welcome-desc">
-              Enter a topic and we'll build a focused learning path that adapts as you go.
-            </p>
+            <div className="brand-hero text-center mb-6">
+              <span className="brand-badge-premium">ADAPTIQ</span>
+              <h2 className="welcome-headline-premium">Learn differently.<br/>Improve intelligently.</h2>
+              <p className="welcome-subtitle-premium">Adaptive Learning Intelligence</p>
+              <p className="welcome-desc mt-4">
+                AdaptiQ learns how you learn. When you struggle, it changes the way a concept is taught and guides you toward what to do next.
+              </p>
+              <div className="branding-philosophy mt-4 text-xs font-mono text-secondary">
+                Personalization tells us how to start. &bull; Performance tells us how to adapt.
+              </div>
+            </div>
+
+            <div className="divider-subtle my-6" />
+
+            <h3 className="section-label-premium">What do you want to learn?</h3>
 
             <form onSubmit={handleTopicSubmit} className="topic-input-form mt-4 w-full max-w-lg">
               <div className="form-group flex flex-col gap-2 text-left">
@@ -605,6 +659,49 @@ function App() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Stage 1a: Optional Language Selection (Free-Text Input) */}
+        {state.phase === "languagePreference" && (
+          <div className="language-stage centered-card">
+            <h2 className="welcome-headline">Choose the language you're most comfortable learning in.</h2>
+            <p className="welcome-desc">
+              Explanations, practice questions, and missions will be tailored to this language.
+            </p>
+
+            <form onSubmit={handleLangSubmit} className="language-input-form mt-6 w-full max-w-lg">
+              <div className="form-group flex flex-col gap-2 text-left">
+                <label htmlFor="language-input-field" className="topic-input-label font-bold">
+                  Learning Language
+                </label>
+                <input
+                  id="language-input-field"
+                  type="text"
+                  className="topic-text-input"
+                  placeholder="e.g. English, Spanish, Hindi, Tamil..."
+                  value={langInput}
+                  onChange={(e) => setLangInput(e.target.value)}
+                  maxLength={50}
+                  required
+                />
+                <p className="helper-text text-secondary text-xs mt-1">
+                  Examples: English, Spanish, Hindi, Tamil, Arabic, Japanese...
+                </p>
+                {langError && (
+                  <p className="error-text text-danger text-sm mt-1" role="alert">
+                    ⚠️ {langError}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary btn-large w-full mt-6"
+              >
+                Continue
+              </button>
+            </form>
           </div>
         )}
 
@@ -699,7 +796,7 @@ function App() {
                   </span>
                 )}
               </div>
-              <ListenButton text={getIntroSpeech()} />
+              <ListenButton text={getIntroSpeech()} lang={state.learningLanguage} />
             </div>
             
             <h2 className="intro-title">{state.lesson.topicTitle}</h2>
@@ -779,7 +876,7 @@ function App() {
           <div className="learning-card">
             <div className="card-header">
               <span className="card-badge uppercase">Learning Content ({state.initialLearningMode})</span>
-              <ListenButton text={getModeSpeech()} />
+              <ListenButton text={getModeSpeech()} lang={state.learningLanguage} />
             </div>
 
             {state.initialLearningMode === "text" && (
@@ -807,7 +904,7 @@ function App() {
                 <h3 className="recovery-content-title">{(selectedContent as any).title}</h3>
                 
                 <div className="story-box-layout mt-4 p-4 border rounded bg-violet-50">
-                  <h4 className="story-subtitle font-bold">📖 The Analogy:</h4>
+                  <h4 className="story-subtitle">📖 The Analogy:</h4>
                   <p className="story-text mt-2">{(selectedContent as any).story}</p>
                 </div>
 
@@ -898,6 +995,7 @@ function App() {
             onSubmitAnswer={(payload) => dispatch({ type: "SUBMIT_PRACTICE_ANSWER", payload })}
             onContinue={() => dispatch({ type: "START_MISSION" })}
             onHelpRequest={() => dispatch({ type: "REQUEST_HELP" })}
+            lang={state.learningLanguage}
           />
         )}
 
@@ -981,6 +1079,7 @@ function App() {
               selectedMode={state.recovery.selectedMode}
               isLoading={state.recovery.contentStatus === "loading"}
               onSelectMode={handleSelectMode}
+              misconception={state.recovery.misconception}
             />
 
             {import.meta.env.DEV && (
@@ -1025,6 +1124,7 @@ function App() {
               <RecoveryContent
                 content={state.recovery.recoveryContent}
                 onContinueToRetest={() => dispatch({ type: "START_RETEST" })}
+                lang={state.learningLanguage}
               />
             )}
           </div>
@@ -1035,7 +1135,7 @@ function App() {
           <div className="learning-card retest-stage">
             <div className="card-header recovery-header">
               <span className="card-badge recovery-badge">Recovery Verification</span>
-              <ListenButton text={getRetestSpeech()} />
+              <ListenButton text={getRetestSpeech()} lang={state.learningLanguage} />
               {state.recovery.recovered === false && (
                 <span className="retest-status-badge fail">Retest Failed</span>
               )}
@@ -1160,6 +1260,7 @@ function App() {
                   },
                 });
               }}
+              lang={state.learningLanguage}
             />
           </div>
         )}
@@ -1220,6 +1321,7 @@ function App() {
                   payload: { nextAction: action },
                 });
               }}
+              lang={state.learningLanguage}
             />
           </div>
         )}

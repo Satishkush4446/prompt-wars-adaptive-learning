@@ -5,7 +5,7 @@ This document defines the exact workflow, functional behaviors, and state machin
 ## 1. The Locked Product Journey
 The complete learning workflow is organized as follows:
 ```text
-Choose Topic → Optional Time Preference → Learn → Choose Learning Mode → Practice → Fail → Detect → Adapt → Recover → Apply → Evaluate → Guide
+Choose Topic → Optional Language → Optional Time Preference → Learn → Choose Learning Mode → Practice → Fail → Detect → Adapt → Recover → Apply → Evaluate → Guide
 ```
 
 ---
@@ -18,8 +18,17 @@ Choose Topic → Optional Time Preference → Learn → Choose Learning Mode →
   * Headline: *"What do you want to learn?"*
   * Supporting copy: *"Enter a topic and we'll build a focused learning path that adapts as you go."*
   * Form Input: Trimmed topic text input (2-100 characters) with pre-configured suggestion shortcuts.
-  * CTA Button: *"Continue"* to advance to Time Preference selection.
+  * CTA Button: *"Continue"* to advance to Language Selection.
 * **Accessibility:** The persistent Accessibility Control panel is immediately focusable.
+
+### Stage 1a: Optional Language Preference
+* **Goal:** Choose the target learning language for explanations, practice questions, and missions using a free-text input.
+* **Content:**
+  * Headline: *"Choose the language you're most comfortable learning in."*
+  * Input field: Text input (default value: `"English"`, maximum 50 characters, minimum 2 characters, no control characters).
+  * Helper copy: *"Examples: English, Spanish, Hindi, Tamil, Arabic, Japanese..."*
+* **Constraints:** Optional. Does not alter mastery, attempts, or knowledge state. Passed directly as untrusted DATA to all AI endpoints (zero extra calls). Instructs Gemini to translate all student-facing educational content while keeping technical keys, concept IDs, and schemas in English. Speech synthesis locale voice dynamically maps language names (`en-US`, `es-ES`, `hi-IN`, `ta-IN`, etc.). If unresolvable, narration is gracefully disabled while the lesson functions normally.
+* **CTA Button:** *"Continue"* to advance to Time Preference selection.
 
 ### Stage 1b: Optional Time Preference
 * **Goal:** Personalize session duration based on available learning time.

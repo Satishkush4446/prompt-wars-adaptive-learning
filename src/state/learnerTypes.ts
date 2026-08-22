@@ -2,6 +2,7 @@ export type ConceptId = string;
 
 export type LearningPhase =
   | "welcome"
+  | "languagePreference"
   | "timePreference"
   | "intro"
   | "learningModeSelection"
@@ -17,6 +18,7 @@ export type LearningPhase =
 
 export type LearningDuration = 5 | 10 | 20 | 30;
 export type LearningMode = "text" | "story" | "visual" | "memory";
+export type LearningLanguage = string;
 
 export interface ConceptState {
   id: ConceptId;
@@ -164,4 +166,5 @@ export interface LearnerState {
   topicInput: string;
   learningDurationMinutes: LearningDuration | null;
   initialLearningMode: LearningMode | null;
+  learningLanguage: LearningLanguage;
 }

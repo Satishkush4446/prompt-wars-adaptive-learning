@@ -133,12 +133,12 @@ export interface MissionEvaluation {
   passed: boolean;
   conceptApplication: "weak" | "developing" | "strong";
   strength: string;
-  weakness: string; // Dynamic concept ID or 'none'
+  weakness: string; // English Concept ID or 'none'
   feedback: string;
 }
 
 export interface NextActionRecommendation {
-  concept: string; // Dynamic concept ID
+  concept: string; // English Concept ID
   actionType: "practice" | "review" | "challenge";
   title: string;
   reason: string;
@@ -180,6 +180,7 @@ async function callApi<T>(action: string, context: Record<string, any>): Promise
 export async function generateLesson(context: { 
   topic: string; 
   learningDurationMinutes?: number | null; 
+  learningLanguage: string;
 }): Promise<GeneratedLesson> {
   return callApi<GeneratedLesson>("generateLesson", context);
 }
@@ -194,6 +195,7 @@ export async function diagnoseMisconception(context: {
   mastery: number;
   recoveryHistory: string[];
   initialLearningMode?: string | null;
+  learningLanguage: string;
 }): Promise<MisconceptionDiagnosis> {
   return callApi<MisconceptionDiagnosis>("diagnose", context);
 }
@@ -206,6 +208,7 @@ export async function generateRecovery(context: {
   misconception: string;
   mastery: number;
   selectedMode: "story" | "visual" | "memory";
+  learningLanguage: string;
 }): Promise<RecoveryContentData> {
   return callApi<RecoveryContentData>("recovery", context);
 }
@@ -217,6 +220,7 @@ export async function evaluateMission(context: {
   rubric: string[];
   learnerSubmission: string;
   learnerState: any;
+  learningLanguage: string;
 }): Promise<MissionEvaluation> {
   return callApi<MissionEvaluation>("evaluateMission", context);
 }
@@ -230,6 +234,7 @@ export async function getNextBestAction(context: {
   missionWeakness: string | null;
   hintUsed: boolean;
   learningDurationMinutes?: number | null;
+  learningLanguage: string;
 }): Promise<NextActionRecommendation> {
   return callApi<NextActionRecommendation>("nextAction", context);
 }

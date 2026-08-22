@@ -16,6 +16,7 @@ interface QuestionCardProps {
   onSubmitAnswer: (payload: { questionId: string; concept: ConceptId; answer: string; correct: boolean }) => void;
   onContinue: () => void;
   onHelpRequest: () => void;
+  lang?: string;
 }
 
 export default function QuestionCard({
@@ -25,6 +26,7 @@ export default function QuestionCard({
   onSubmitAnswer,
   onContinue,
   onHelpRequest,
+  lang = "en-US",
 }: QuestionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [submitted, setSubmitted] = useState<boolean>(false);
@@ -57,7 +59,7 @@ export default function QuestionCard({
           <span className="card-badge">Concept Practice</span>
           <span className="attempts-badge">Attempts: {currentAttemptCount}</span>
         </div>
-        <ListenButton text={speechText} />
+        <ListenButton text={speechText} lang={lang} />
       </div>
 
       <h3 className="question-title">{question.prompt}</h3>
@@ -110,7 +112,7 @@ export default function QuestionCard({
             <div className="feedback-correct">
               <div className="feedback-header">
                 <p className="feedback-msg">✓ Correct — concept understood.</p>
-                <ListenButton text="Correct — concept understood." />
+                <ListenButton text="Correct — concept understood." lang={lang} />
               </div>
               <button 
                 type="button" 
@@ -126,7 +128,7 @@ export default function QuestionCard({
                 <p className="feedback-msg">
                   Incorrect — try again. Hint: {question.retryHint}
                 </p>
-                <ListenButton text={`Incorrect — try again. Hint: ${question.retryHint}`} />
+                <ListenButton text={`Incorrect — try again. Hint: ${question.retryHint}`} lang={lang} />
               </div>
               <div className="button-group mt-4">
                 <button 

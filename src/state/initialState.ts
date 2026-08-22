@@ -38,4 +38,5 @@ export const initialLearnerState: LearnerState = {
   topicInput: "",
   learningDurationMinutes: null,
   initialLearningMode: null,
+  learningLanguage: "English",
 };

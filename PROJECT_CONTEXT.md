@@ -16,11 +16,18 @@ Build an adaptive AI learning system that notices when a learner struggles, chan
 Notice → Adapt → Recover → Apply → Guide
 ```
 
+### Locked Product Journey
+The complete learning sequence is organized as follows:
+```text
+Choose Topic → Optional Language → Optional Time → Learn → Choose Learning Mode → Practice → Fail → Detect → Adapt → Recover → Apply → Evaluate → Guide
+```
+
 ### Critical Product Distinctions
 - **Initial Learning Mode:** The learner chooses how they want the concept presented initially (Text, Story, Visual, Memory) before starting Practice. This represents **learner preference**.
 - **Recovery Mode:** When a learner struggles (two wrong answers or manual trigger), the system automatically analyzes their mistakes and initial mode to recommend a different mode. This represents **observed adaptation**.
+- **Optional Language:** The learner enters their target learning language in a free-text input (defaults to `"English"`). It accepts any language (e.g. English, Spanish, Hindi, Tamil, German) with validation bounds (2-50 chars, no control characters). The value localizes all educational text content directly via serverless AI context payloads (zero extra calls).
 - **Learning Duration (Time Preference):** An optional session preference (5, 10, 20, 30 min, or Skip) that scales lesson content length and mission complexity. It is not evidence of knowledge and never alters mastery or attempts.
-- **Listen:** Browser speech synthesis that reads text out loud on demand. It is an optional accessibility aid, not a separate learning mode.
+- **Listen:** Browser speech synthesis that reads text out loud on demand. It is an optional accessibility aid, not a separate learning mode. Narration voices match the selected language (e.g. `en-US`, `es-ES`, `hi-IN`, `ta-IN`, `de-DE`, etc.). If a language cannot be matched to a locale voice, it gracefully indicates narration is unavailable while the lesson continues normally.
 
 ## Accessibility Principle
 Personalized learning should consider both:

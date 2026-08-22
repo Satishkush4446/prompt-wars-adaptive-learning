@@ -15,6 +15,7 @@ interface MissionCardProps {
   onUseHint: () => void;
   onSubmitMission: () => void;
   onDevelopmentMockEvaluation: (passed: boolean) => void;
+  lang?: string;
 }
 
 export default function MissionCard({
@@ -24,6 +25,7 @@ export default function MissionCard({
   onUseHint,
   onSubmitMission,
   onDevelopmentMockEvaluation,
+  lang = "en-US",
 }: MissionCardProps) {
   const [submissionText, setSubmissionText] = useState<string>("");
 
@@ -63,7 +65,7 @@ export default function MissionCard({
         <div className="header-badges">
           <span className="card-badge mission-badge">Learn-by-Doing Mission</span>
         </div>
-        <ListenButton text={speechText} />
+        <ListenButton text={speechText} lang={lang} />
       </div>
 
       <h3 className="mission-title">{mission.title}</h3>

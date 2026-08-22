@@ -66,21 +66,27 @@ Checklist for implementing the prompt-wars-adaptive-learning MVP.
 * [x] Dynamic non-coding topic works (e.g. Photosynthesis).
 * [x] Complete adaptive learning journey verified.
 * [x] Accessibility regression testing passed.
+* [x] Free-text language input configuration view (defaulted to `"English"`).
+* [x] Client/server validations enforcing length (2-50 chars), whitespace trimming, and control characters rejection.
+* [x] Target learning language passed directly as untrusted DATA to serverless AI endpoints (zero extra calls).
+* [x] AI instructions explicitly updated to protect against prompt injection, translating student-facing text while keeping schemas in English.
+* [x] Dynamic SpeechSynthesis voice mapping by language name (fallback gracefully with warning alerts on unmapped languages).
+* [x] Unit tests covering free-text language updates, storage validation, and resetting verified.
 
 ## P1 — Quality & Verification
 * [x] Write unit tests for core algorithms.
 * [x] Write tests for the state machine/reducer transitions.
-* [ ] Add schema validation tests for all Gemini JSON integrations.
-* [ ] Conduct end-to-end testing of the adaptive loop.
-* [ ] Audit accessibility checklist against WCAG AA standards.
-* [ ] Audit security (check for secrets exposure and input bounding).
-* [ ] Optimize API payloads to reduce token overhead.
-* [ ] Perform responsive design tests on mobile, tablet, and desktop viewports.
-* [ ] Apply Apple-inspired minimalist visual polish.
-* [ ] Create project README.md.
-* [ ] Clean up repository, ensuring no temporary files are tracked.
-* [ ] Deploy application on Vercel.
-* [ ] Verify production API keys and live endpoints.
+* [x] Add schema validation tests for all Gemini JSON integrations.
+* [x] Conduct end-to-end testing of the adaptive loop.
+* [x] Audit accessibility checklist against WCAG AA standards.
+* [x] Audit security (check for secrets exposure and input bounding).
+* [x] Optimize API payloads to reduce token overhead.
+* [x] Perform responsive design tests on mobile, tablet, and desktop viewports.
+* [x] Apply Apple-inspired minimalist visual polish.
+* [x] Create project README.md.
+* [x] Clean up repository, ensuring no temporary files are tracked.
+* [x] Deploy application on Vercel.
+* [x] Verify production API keys and live endpoints.
 
 ## P2 — Polish
 * [ ] Add subtle, accessible visual transitions (only if P0/P1 are fully complete).

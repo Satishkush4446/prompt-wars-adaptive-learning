@@ -1035,3 +1035,64 @@ html.enhanced-focus *:focus-visible {
   outline-offset: 6px !important;
 }
 
+/* Premium Visual Branding and Layouts for AdaptiQ */
+.brand-hero {
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.brand-badge-premium {
+  display: inline-block;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: var(--font-small);
+  letter-spacing: 0.25em;
+  color: var(--accent-blue);
+  background: rgba(0, 113, 227, 0.08);
+  padding: 6px 14px;
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+
+.welcome-headline-premium {
+  font-size: var(--font-h1);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.welcome-subtitle-premium {
+  font-family: var(--sans);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+}
+
+.section-label-premium {
+  font-size: var(--font-h3);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.divider-subtle {
+  height: 1px;
+  background-color: var(--border);
+  width: 100%;
+}
+
+.branding-philosophy {
+  border-left: 2px solid var(--accent-blue);
+  padding-left: 10px;
+  margin-top: 1.5rem;
+}
+
+

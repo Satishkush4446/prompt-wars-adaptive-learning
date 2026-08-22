@@ -8,7 +8,8 @@ import type {
   LearningPhase,
   GeneratedLesson,
   LearningDuration,
-  LearningMode
+  LearningMode,
+  LearningLanguage
 } from "./learnerTypes";
 import { initialLearnerState } from "./initialState";
 
@@ -54,6 +55,7 @@ export type LearnerAction =
   | { type: "RESET_LEARNING_SESSION" }
   | { type: "SET_TOPIC_INPUT"; payload: { topicInput: string } }
   | { type: "SET_TOPIC_SUBMIT"; payload: { topicInput: string } }
+  | { type: "SET_LANGUAGE_PREFERENCE"; payload: { language: LearningLanguage } }
   | { type: "SET_TIME_PREFERENCE"; payload: { duration: LearningDuration | null } }
   | { type: "START_LESSON_GENERATION" }
   | { type: "SET_GENERATED_LESSON"; payload: { lesson: GeneratedLesson } }
@@ -78,6 +80,13 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
       return {
         ...state,
         topicInput: action.payload.topicInput,
+        phase: "languagePreference",
+      };
+
+    case "SET_LANGUAGE_PREFERENCE":
+      return {
+        ...state,
+        learningLanguage: action.payload.language,
         phase: "timePreference",
       };
 

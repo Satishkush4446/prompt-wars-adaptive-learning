@@ -4,9 +4,10 @@ import ListenButton from "./ListenButton";
 interface RecoveryContentProps {
   content: RecoveryContentData | null;
   onContinueToRetest: () => void;
+  lang?: string;
 }
 
-export default function RecoveryContent({ content, onContinueToRetest }: RecoveryContentProps) {
+export default function RecoveryContent({ content, onContinueToRetest, lang = "en-US" }: RecoveryContentProps) {
   if (!content) {
     return (
       <div className="recovery-content-placeholder">
@@ -28,7 +29,7 @@ export default function RecoveryContent({ content, onContinueToRetest }: Recover
     <div className="recovery-content-card">
       <div className="card-header recovery-header">
         <span className="card-badge recovery-badge">Tailored Explanation ({content.mode.toUpperCase()})</span>
-        <ListenButton text={speechText} />
+        <ListenButton text={speechText} lang={lang} />
       </div>
 
       {content.mode === "story" && (

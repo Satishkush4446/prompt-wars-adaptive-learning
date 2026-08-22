@@ -32,6 +32,13 @@ Our design favors exceptional simplicity, generous white space, and clear focus.
 * **Primary Action:** Large, elegant button: *"Start Learning"*.
 * **Layout:** Centered, minimal, uncluttered.
 
+### A1. Language Selection Screen
+* **Hero Messaging:** *"Choose the language you're most comfortable learning in."*
+* **Supporting Messaging:** *"Explanations, practice questions, and missions will be tailored to this language."*
+* **Primary Options:** Free-text input field (pre-filled with `"English"`, maximum 50 characters, minimum 2 characters).
+* **A11y:** Toggling set elements dynamically resolves BCP-47 locale tags to update the document `lang` attribute for native screen reader pronunciation. Narration buttons map voice locales appropriately, or gracefully fall back to displaying a disabled warning notice if no speech locale is resolvable.
+* **Layout:** Centered card with clean validation warning indicators.
+
 ### B. Practice Screen
 * **Focus:** The question must be the clear hero element.
 * **Interface:**
