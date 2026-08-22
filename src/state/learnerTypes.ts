@@ -1,4 +1,4 @@
-export type ConceptId = "parameters" | "returnValues" | "functionCalls";
+export type ConceptId = string;
 
 export type LearningPhase =
   | "welcome"
@@ -14,6 +14,8 @@ export type LearningPhase =
 
 export interface ConceptState {
   id: ConceptId;
+  name: string;
+  description: string;
   mastery: number;
   attempts: number;
   correctAttempts: number;
@@ -51,7 +53,7 @@ export interface MissionState {
   passed: boolean | null;
   hintUsed: boolean;
   feedback: string | null;
-  weakness: ConceptId | null;
+  weakness: ConceptId | null; // dynamic concept ID or null
 }
 
 export type NextActionType = "practice" | "review" | "challenge";
@@ -71,6 +73,37 @@ export interface AccessibilityPreferences {
   enhancedFocus: boolean;
 }
 
+export interface LessonConcept {
+  id: ConceptId;
+  name: string;
+  description: string;
+}
+
+export interface LessonQuestion {
+  id: string;
+  conceptId: ConceptId;
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  retryHint: string;
+}
+
+export interface LessonMission {
+  title: string;
+  goal: string;
+  instructions: string;
+  starterContent: string;
+  rubric: string[];
+}
+
+export interface GeneratedLesson {
+  topicTitle: string;
+  intro: string;
+  concepts: LessonConcept[];
+  initialQuestion: LessonQuestion;
+  mission: LessonMission;
+}
+
 export interface LearnerState {
   phase: LearningPhase;
   currentConcept: ConceptId;
@@ -81,4 +114,7 @@ export interface LearnerState {
   mission: MissionState;
   nextAction: NextAction | null;
   accessibility: AccessibilityPreferences;
+  lesson: GeneratedLesson | null;
+  lessonStatus: "idle" | "loading" | "success" | "error";
+  topicInput: string;
 }

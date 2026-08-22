@@ -1,12 +1,21 @@
 # AI Behavior & Contracts
 
-This document defines the interface, input/output schemas, and execution constraints for the four primary AI actions.
+This document defines the interface, input/output schemas, and execution constraints for the five primary AI actions.
 
-## The Four Primary AI Actions
+## The Five Primary AI Actions
 
 ---
 
-### AI Action 1: Diagnose Misconception
+### AI Action 1: Generate Lesson
+* **Trigger:** Learner enters a topic (2-100 characters) on the Welcome page.
+* **Input Context:**
+  * Topic: string
+* **Output Structure (JSON Schema):**
+  Exactly 3 concepts (with unique lowercase, alphanumeric-hyphen-only IDs), topic title, a short intro explanation, an initial MCQ practice question, and a practical mission with instructions and a non-empty grading rubric.
+
+---
+
+### AI Action 2: Diagnose Misconception
 * **Trigger:** Learner struggles (two consecutive incorrect attempts or manual trigger).
 * **Input Context:**
   * Topic: (e.g., `"Python Functions"`)

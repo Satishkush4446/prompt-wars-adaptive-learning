@@ -4,21 +4,20 @@ This document defines the exact workflow, functional behaviors, and state machin
 
 ## 1. Core Workflow Stages
 
-### Stage 1: Welcome
-* **Goal:** Introduce the application and give the user immediate access to customization controls.
+### Stage 1: Welcome (Topic Input)
+* **Goal:** Allow the learner to enter any topic and give immediate access to customization controls.
 * **Content:** 
-  * Headline: *"Learning that adapts when you need it most."*
-  * Supporting copy: *"We notice where you're struggling, change how we teach, verify whether it worked, and guide what you should do next."*
-  * Obvious CTA button: *"Start Learning"* to begin the Python Functions lesson.
+  * Headline: *"What do you want to learn?"*
+  * Supporting copy: *"Enter a topic and we'll build a focused learning path that adapts as you go."*
+  * Form Input: Trimmed topic text input (2-100 characters) with pre-configured suggestion shortcuts.
+  * Loading state: *"Building your learning path..."* appears during AI generation.
+  * Obvious CTA button: *"Build My Learning Path"* to trigger lesson generation.
 * **Accessibility:** The persistent Accessibility Control panel must be immediately focusable and reachable from this page.
 
 ### Stage 2: Concept Introduction
-* **Goal:** Provide a brief introduction to Python Functions.
-* **Concepts Covered:**
-  * Parameters
-  * Return values
-  * Function calls
-* **Content:** Brief, high-quality, authored educational explanations. Must not be falsely labeled as AI-generated.
+* **Goal:** Introduce the dynamically generated concepts.
+* **Concepts Covered:** Exactly 3 AI-generated foundational concepts mapping to the selected topic.
+* **Content:** AI-generated plain language introduction with screen-reader narration Listen controls.
 
 ### Stage 3: Practice
 * **Goal:** Test comprehension using a vetted multiple-choice question.

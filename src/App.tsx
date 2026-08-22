@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useState } from "react";
+import { useReducer, useEffect, useState, useRef } from "react";
 import { learnerReducer } from "./state/learnerReducer";
 import { initialLearnerState } from "./state/initialState";
 import { loadLearnerState, saveLearnerState } from "./lib/storage";
@@ -6,7 +6,8 @@ import {
   diagnoseMisconception,
   generateRecovery,
   evaluateMission,
-  getNextBestAction
+  getNextBestAction,
+  generateLesson
 } from "./lib/aiClient";
 import type { RecoveryContentData } from "./lib/aiClient";
 import type { RecoveryMode as RecoveryModeType } from "./state/learnerTypes";
@@ -17,6 +18,7 @@ import RecoveryMode from "./components/RecoveryMode";
 import RecoveryContent from "./components/RecoveryContent";
 import MissionCard from "./components/MissionCard";
 import NextActionCard from "./components/NextActionCard";
+import ListenButton from "./components/ListenButton";
 
 import "./App.css";
 
@@ -27,6 +29,11 @@ function App() {
 
   const [showA11yMenu, setShowA11yMenu] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [topicText, setTopicText] = useState<string>("");
+  const [inputError, setInputError] = useState<string | null>(null);
+
+  const a11yButtonRef = useRef<HTMLButtonElement>(null);
+  const a11yMenuRef = useRef<HTMLDivElement>(null);
 
   // Sync state to localStorage
   useEffect(() => {
@@ -49,14 +56,42 @@ function App() {
     else root.classList.remove("enhanced-focus");
   }, [state.accessibility]);
 
+  // Accessibility popover keyboard trap and escape handling
+  useEffect(() => {
+    if (showA11yMenu) {
+      // Focus the first action in menu
+      const firstItem = a11yMenuRef.current?.querySelector("button");
+      if (firstItem instanceof HTMLElement) {
+        firstItem.focus();
+      }
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setShowA11yMenu(false);
+          a11yButtonRef.current?.focus();
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showA11yMenu]);
+
+  // Stop active speech narration whenever the learning phase transitions
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, [state.phase]);
+
   // Re-test state variables
   const [selectedRetestOption, setSelectedRetestOption] = useState<string>("");
   const [retestSubmitted, setRetestSubmitted] = useState<boolean>(false);
 
   // Dynamic retest variables
   const dynamicQuestion = state.recovery.recoveryContent?.reTestQuestion;
-  const retestQuestionText = dynamicQuestion?.question || "Re-test: Verify parameter outputs";
-  const retestOptionsList = dynamicQuestion?.options || ["2", "3", "5", "6"];
+  const retestQuestionText = dynamicQuestion?.question || "Re-test verification question";
+  const retestOptionsList = dynamicQuestion?.options || [];
 
   const handleRetestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,14 +102,12 @@ function App() {
       const correctIdx = dynamicQuestion.correctOptionIndex;
       const correctOptionText = dynamicQuestion.options[correctIdx];
       correct = selectedRetestOption === correctOptionText;
-    } else {
-      correct = selectedRetestOption === "5";
     }
 
     dispatch({
       type: "SUBMIT_RETEST",
       payload: {
-        questionId: dynamicQuestion ? "qr_dynamic" : "q_add_retest",
+        questionId: "qr_dynamic",
         concept: state.currentConcept,
         answer: selectedRetestOption,
         correct,
@@ -88,9 +121,35 @@ function App() {
     setRetestSubmitted(false);
   };
 
+  // Lesson Generation trigger
+  const handleBuildLesson = async (e?: React.FormEvent, suggestTopic?: string) => {
+    if (e) e.preventDefault();
+    const finalTopic = (suggestTopic || topicText).trim();
+    
+    // Topic text validations
+    if (finalTopic.length < 2 || finalTopic.length > 100) {
+      setInputError("Topic must be between 2 and 100 characters.");
+      return;
+    }
+    
+    setInputError(null);
+    setApiError(null);
+    dispatch({ type: "START_LESSON_GENERATION" });
+
+    try {
+      const lesson = await generateLesson({ topic: finalTopic });
+      dispatch({ type: "SET_GENERATED_LESSON", payload: { lesson } });
+    } catch (error: any) {
+      console.error("Lesson generation failed:", error);
+      dispatch({ type: "LESSON_GENERATION_ERROR" });
+      setApiError(error.message || "Failed to generate lesson path. Please try again.");
+    }
+  };
+
   // 1. Real Misconception Diagnosis Workflow
   useEffect(() => {
-    if (state.phase === "recoveryDiagnosis" && state.recovery.diagnosisStatus === "idle") {
+    const lesson = state.lesson;
+    if (state.phase === "recoveryDiagnosis" && state.recovery.diagnosisStatus === "idle" && lesson) {
       const runDiagnosis = async () => {
         dispatch({ type: "START_RECOVERY_DIAGNOSIS" });
         setApiError(null);
@@ -100,10 +159,10 @@ function App() {
             .map(a => a.answer);
 
           const result = await diagnoseMisconception({
-            topic: "Python Functions",
+            topic: lesson.topicTitle,
             concept: state.currentConcept,
-            question: "What value is stored in `answer`? (def double(number): result = number * 2; return result; answer = double(4))",
-            correctAnswer: "8",
+            question: lesson.initialQuestion.prompt,
+            correctAnswer: lesson.initialQuestion.correctAnswer,
             learnerAnswers: wrongAnswers,
             attemptCount: wrongAnswers.length,
             mastery: state.concepts[state.currentConcept]?.mastery || 0,
@@ -125,10 +184,11 @@ function App() {
       };
       runDiagnosis();
     }
-  }, [state.phase, state.recovery.diagnosisStatus, state.currentConcept, state.attempts]);
+  }, [state.phase, state.recovery.diagnosisStatus, state.currentConcept, state.attempts, state.lesson]);
 
   // 2. Real Recovery Content Selection & Generation
   const handleSelectMode = async (selectedMode: RecoveryModeType) => {
+    if (!state.lesson) return;
     dispatch({ type: "SELECT_RECOVERY_MODE", payload: { selectedMode } });
     dispatch({ type: "START_RECOVERY_CONTENT" });
     setApiError(null);
@@ -139,14 +199,22 @@ function App() {
         .map(a => a.answer);
 
       const content = await generateRecovery({
-        topic: "Python Functions",
+        topic: state.lesson.topicTitle,
         concept: state.currentConcept,
-        question: "What value is stored in `answer`?",
+        question: state.lesson.initialQuestion.prompt,
         learnerAnswers: wrongAnswers,
-        misconception: state.recovery.misconception || "Struggling with passing values to arguments",
+        misconception: state.recovery.misconception || "Struggling with conceptual workflow basics",
         mastery: state.concepts[state.currentConcept]?.mastery || 0,
         selectedMode
       });
+
+      // Visual Mode verification: MUST include non-empty accessibleExplanation
+      if (selectedMode === "visual") {
+        const visualData = content as any;
+        if (!visualData.accessibleExplanation || visualData.accessibleExplanation.trim().length === 0) {
+          throw new Error("Visual representation generated is missing an accessible explanation.");
+        }
+      }
 
       dispatch({
         type: "SET_RECOVERY_CONTENT_SUCCESS",
@@ -155,30 +223,37 @@ function App() {
     } catch (error: any) {
       console.error("Recovery generation failed:", error);
       dispatch({ type: "RECOVERY_CONTENT_ERROR" });
-      setApiError(error.message || "Failed to generate recovery content.");
+      setApiError(error.message || "Failed to generate recovery explanation.");
     }
   };
 
   // 3. Real Mission Evaluation
   const handleEvaluateMission = async () => {
+    if (!state.lesson) return;
     dispatch({ type: "START_MISSION_EVALUATION" });
     setApiError(null);
     try {
       const evaluation = await evaluateMission({
-        topic: "Python Functions",
+        topic: state.lesson.topicTitle,
         concept: state.currentConcept,
-        missionGoal: "Make total(price, quantity) calculate amount = price * quantity and return amount so total(5, 3) produces 15.",
-        rubric: "Verify that the code calculates amount correctly and uses the return keyword to return amount or (price * quantity). Do not accept code that hardcodes 15 or lacks a return statement.",
+        missionGoal: state.lesson.mission.goal,
+        rubric: state.lesson.mission.rubric,
         learnerSubmission: state.mission.submission,
         learnerState: state
       });
+
+      // Validate dynamic weakness concept ID
+      let finalWeakness = null;
+      if (evaluation.weakness && evaluation.weakness !== "none" && state.concepts[evaluation.weakness]) {
+        finalWeakness = evaluation.weakness;
+      }
 
       dispatch({
         type: "SET_MISSION_RESULT",
         payload: {
           passed: evaluation.passed,
           feedback: evaluation.feedback,
-          weakness: evaluation.weakness === "none" ? null : evaluation.weakness
+          weakness: finalWeakness
         }
       });
     } catch (error: any) {
@@ -204,9 +279,16 @@ function App() {
         hintUsed: state.mission.hintUsed
       });
 
+      // Validate concept matches one of generated concepts
+      let finalRec = recommendation;
+      if (!state.concepts[recommendation.concept]) {
+        const firstConceptId = Object.keys(state.concepts)[0];
+        finalRec = { ...recommendation, concept: firstConceptId };
+      }
+
       dispatch({
         type: "SET_NEXT_ACTION",
-        payload: { nextAction: recommendation }
+        payload: { nextAction: finalRec }
       });
     } catch (error: any) {
       console.error("Next action request failed:", error);
@@ -245,14 +327,14 @@ function App() {
     });
   };
 
-  // Mock handlers only rendered in local DEV mode
+  // Pre-configured developer mock topic helpers
   const handleMockDiagnosis = (mode: RecoveryModeType) => {
     dispatch({ type: "START_RECOVERY_DIAGNOSIS" });
     setTimeout(() => {
       dispatch({
         type: "SET_RECOVERY_DIAGNOSIS",
         payload: {
-          misconception: "Learner believes parameters are hardcoded and not variable inputs.",
+          misconception: "Learner is confusing variables with structural input declarations.",
           recommendedMode: mode,
         },
       });
@@ -263,23 +345,23 @@ function App() {
     dispatch({ type: "START_RECOVERY_CONTENT" });
     const mockContent: RecoveryContentData = {
       mode: mode as any,
-      title: `Tailored Parameter Explanation (${mode.toUpperCase()})`,
-      keyTakeaway: "Parameters are placeholders initialized with passed argument values.",
+      title: `Tailored Explanation (${mode.toUpperCase()})`,
+      keyTakeaway: "Inputs function as placeholders initialized at execution.",
       reTestQuestion: {
-        question: "What value is returned by add(2, 3)?",
-        options: ["2", "3", "5", "6"],
+        question: "What value completes the workflow correctly?",
+        options: ["Option A", "Option B", "Option C", "Option D"],
         correctOptionIndex: 2
       },
       ...(mode === "story" ? {
-        story: "Think of parameters like mailbox slots. When you call double(4), you drop 4 in the mailbox slot.",
-        connection: "The slot variable receives 4."
+        story: "Think of inputs like named folders. When values enter, they are saved in that specific folder.",
+        connection: "Variables receive content mapped to their names."
       } : mode === "memory" ? {
-        hook: "PARAMS",
-        meaning: "Placeholder variables Receive Actual Arguments.",
-        example: "def double(number): where number is parameter."
+        hook: "INPUTS",
+        meaning: "Initial Names Parameterize User Triggers Safely.",
+        example: "def process(item): where item is the input parameter."
       } : {
-        steps: [{ label: "Input", value: "4", explanation: "4 is passed as argument" }],
-        accessibleExplanation: "Visual diagram of value flow."
+        steps: [{ label: "Data Input", value: "x = value", explanation: "Value is stored in variable" }],
+        accessibleExplanation: "Visual diagram demonstrating input storage sequence."
       })
     } as any;
 
@@ -289,6 +371,17 @@ function App() {
         payload: { recoveryContent: mockContent } 
       });
     }, 600);
+  };
+
+  // Text builder for dynamic narration
+  const getIntroSpeech = () => {
+    if (!state.lesson) return "";
+    const conceptTexts = state.lesson.concepts.map(c => `${c.name}: ${c.description}`).join(". ");
+    return `Topic: ${state.lesson.topicTitle}. Introduction: ${state.lesson.intro}. Concepts covered are: ${conceptTexts}`;
+  };
+
+  const getRetestSpeech = () => {
+    return `${retestQuestionText}. Options are: ${retestOptionsList.join(", ")}`;
   };
 
   return (
@@ -302,6 +395,7 @@ function App() {
 
         <div className="header-actions">
           <button
+            ref={a11yButtonRef}
             type="button"
             className="btn btn-secondary a11y-toggle"
             aria-expanded={showA11yMenu}
@@ -312,12 +406,17 @@ function App() {
           </button>
 
           {showA11yMenu && (
-            <div className="a11y-dropdown" role="menu">
+            <div 
+              ref={a11yMenuRef}
+              className="a11y-dropdown" 
+              role="dialog"
+              aria-label="Accessibility presentation modifier preferences"
+            >
               <div className="a11y-dropdown-header">Visual & Interaction Modes</div>
               
               <button
                 type="button"
-                role="menuitemcheckbox"
+                role="checkbox"
                 aria-checked={state.accessibility.largeText}
                 className={`a11y-dropdown-item ${state.accessibility.largeText ? "checked" : ""}`}
                 onClick={() => toggleA11y("largeText")}
@@ -328,7 +427,7 @@ function App() {
 
               <button
                 type="button"
-                role="menuitemcheckbox"
+                role="checkbox"
                 aria-checked={state.accessibility.highContrast}
                 className={`a11y-dropdown-item ${state.accessibility.highContrast ? "checked" : ""}`}
                 onClick={() => toggleA11y("highContrast")}
@@ -339,7 +438,7 @@ function App() {
 
               <button
                 type="button"
-                role="menuitemcheckbox"
+                role="checkbox"
                 aria-checked={state.accessibility.reducedMotion}
                 className={`a11y-dropdown-item ${state.accessibility.reducedMotion ? "checked" : ""}`}
                 onClick={() => toggleA11y("reducedMotion")}
@@ -350,13 +449,21 @@ function App() {
 
               <button
                 type="button"
-                role="menuitemcheckbox"
+                role="checkbox"
                 aria-checked={state.accessibility.enhancedFocus}
                 className={`a11y-dropdown-item ${state.accessibility.enhancedFocus ? "checked" : ""}`}
                 onClick={() => toggleA11y("enhancedFocus")}
               >
                 <span>Enhanced Focus Ring</span>
                 <span className="checkbox-indicator">{state.accessibility.enhancedFocus ? "✓" : ""}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm mt-4 w-full"
+                onClick={() => setShowA11yMenu(false)}
+              >
+                Close Menu
               </button>
             </div>
           )}
@@ -366,16 +473,21 @@ function App() {
       {/* Progress Journey Indicator */}
       <nav className="progress-nav" aria-label="Learning Stage Progress">
         <ul className="progress-stages">
-          {(["Learn", "Practice", "Recover", "Apply", "Guide"] as const).map((stage) => (
-            <li 
-              key={stage} 
-              className={`stage-item ${currentProgressStage === stage ? "active" : ""}`}
-              aria-current={currentProgressStage === stage ? "step" : undefined}
-            >
-              <span className="stage-dot" />
-              <span className="stage-name">{stage}</span>
-            </li>
-          ))}
+          {(["Learn", "Practice", "Recover", "Apply", "Guide"] as const).map((stage) => {
+            const isActive = currentProgressStage === stage;
+            return (
+              <li 
+                key={stage} 
+                className={`stage-item ${isActive ? "active" : ""}`}
+                aria-current={isActive ? "step" : undefined}
+              >
+                <span className="stage-dot" />
+                <span className="stage-name">
+                  {isActive ? `Current: ${stage}` : stage}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
@@ -388,58 +500,119 @@ function App() {
       <main className="main-content">
         {state.phase === "welcome" && (
           <div className="welcome-stage centered-card">
-            <h2 className="welcome-headline">Learning that adapts when you need it most.</h2>
-            <p className="welcome-desc">
-              We notice where you're struggling, change the approach, and guide your next step.
-            </p>
-            <div className="welcome-subject-box">
-              <span className="subject-label">Primary Topic</span>
-              <h3 className="subject-title">Python Functions</h3>
-              <p className="subject-concepts">Parameters · Return values · Function calls</p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-large"
-              onClick={() => dispatch({ type: "START_LEARNING" })}
-            >
-              Start Learning
-            </button>
+            {state.lessonStatus === "loading" ? (
+              <div className="status-loading-spinner" role="status" aria-live="polite">
+                <p className="loading-text text-xl font-bold">Building your learning path…</p>
+                <p className="loading-sub text-sm">Please wait while Gemini creates your curriculum.</p>
+              </div>
+            ) : (
+              <>
+                <h2 className="welcome-headline">What do you want to learn?</h2>
+                <p className="welcome-desc">
+                  Enter a topic and we'll build a focused learning path that adapts as you go.
+                </p>
+
+                <form onSubmit={handleBuildLesson} className="topic-input-form mt-4 w-full max-w-lg">
+                  <div className="form-group flex flex-col gap-2 align-left">
+                    <label htmlFor="topic-input-field" className="topic-input-label text-left font-bold">
+                      Target Topic
+                    </label>
+                    <input
+                      id="topic-input-field"
+                      type="text"
+                      className="topic-text-input"
+                      placeholder="e.g. Fractions, Photosynthesis, Python Functions..."
+                      value={topicText}
+                      onChange={(e) => setTopicText(e.target.value)}
+                      maxLength={100}
+                      required
+                    />
+                    {inputError && (
+                      <p className="error-text text-danger text-sm mt-1" role="alert">
+                        ⚠️ {inputError}
+                      </p>
+                    )}
+                  </div>
+
+                  {apiError && (
+                    <div className="error-alert mt-4" role="alert">
+                      <p className="error-msg">⚠️ We couldn't build your learning path right now.</p>
+                      <p className="error-detail text-sm mt-1">{apiError}</p>
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary btn-sm mt-2" 
+                        onClick={handleBuildLesson}
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-large w-full mt-6"
+                    disabled={state.lessonStatus as any === "loading"}
+                  >
+                    Build My Learning Path
+                  </button>
+                </form>
+
+                {/* Pre-configured suggestion tags */}
+                <div className="suggested-topics-container mt-6">
+                  <span className="suggested-label text-sm font-semibold">Suggested Topics:</span>
+                  <div className="suggestions-list flex gap-2 mt-2 justify-center">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm suggestion-tag-btn"
+                      onClick={() => { setTopicText("Python Functions"); handleBuildLesson(undefined, "Python Functions"); }}
+                    >
+                      Python Functions
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm suggestion-tag-btn"
+                      onClick={() => { setTopicText("Photosynthesis"); handleBuildLesson(undefined, "Photosynthesis"); }}
+                    >
+                      Photosynthesis
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm suggestion-tag-btn"
+                      onClick={() => { setTopicText("Fractions"); handleBuildLesson(undefined, "Fractions"); }}
+                    >
+                      Fractions
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {state.phase === "intro" && (
+        {state.phase === "intro" && state.lesson && (
           <div className="intro-stage learning-card">
             <div className="card-header">
-              <span className="card-badge">Today's Focus</span>
+              <span className="card-badge">Lesson Introduction</span>
+              <ListenButton text={getIntroSpeech()} />
             </div>
-            <h2 className="intro-title">Understand how information moves through a Python function.</h2>
             
-            <div className="intro-explanation">
-              <p>A Python function is like a reusable assembly machine. It follows a simple three-step cycle:</p>
-              <ol className="intro-flow-list">
-                <li>
-                  <strong>Parameters (Inputs):</strong> Values you pass into the function to work with.
-                </li>
-                <li>
-                  <strong>Function Body (Processing):</strong> The action or calculation performed inside the function.
-                </li>
-                <li>
-                  <strong>Return Value (Outputs):</strong> The final resulting data sent back to the rest of your program.
-                </li>
-              </ol>
-            </div>
-
-            <div className="intro-diagram" aria-hidden="true">
-              <div className="diagram-box">INPUT (Parameters)</div>
-              <div className="diagram-arrow">↓</div>
-              <div className="diagram-box highlighted">FUNCTION BODY</div>
-              <div className="diagram-arrow">↓</div>
-              <div className="diagram-box">OUTPUT (Return Value)</div>
+            <h2 className="intro-title">{state.lesson.topicTitle}</h2>
+            <div className="intro-explanation mt-4">
+              <p>{state.lesson.intro}</p>
+              
+              <h3 className="intro-concepts-header mt-4 font-bold text-lg">Foundational Concepts Covered:</h3>
+              <ul className="intro-concepts-list flex flex-col gap-3">
+                {state.lesson.concepts.map((concept) => (
+                  <li key={concept.id} className="concept-intro-item">
+                    <strong>{concept.name}:</strong> {concept.description}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary mt-6"
               onClick={() => dispatch({ type: "GO_TO_PRACTICE" })}
             >
               Try Practice Question
@@ -447,17 +620,18 @@ function App() {
           </div>
         )}
 
-        {state.phase === "practice" && (
+        {state.phase === "practice" && state.lesson && (
           <QuestionCard
-            currentAttemptCount={state.concepts.parameters.attempts}
-            recentOutcome={state.concepts.parameters.recentOutcome}
+            currentAttemptCount={state.concepts[state.lesson.initialQuestion.conceptId]?.attempts || 0}
+            recentOutcome={state.concepts[state.lesson.initialQuestion.conceptId]?.recentOutcome || null}
+            question={state.lesson.initialQuestion}
             onSubmitAnswer={(payload) => dispatch({ type: "SUBMIT_PRACTICE_ANSWER", payload })}
             onContinue={() => dispatch({ type: "START_MISSION" })}
             onHelpRequest={() => dispatch({ type: "REQUEST_HELP" })}
           />
         )}
 
-        {state.phase === "recoveryDiagnosis" && (
+        {state.phase === "recoveryDiagnosis" && state.lesson && (
           <div className="learning-card recovery-diagnosis-pending">
             <div className="card-header recovery-header">
               <span className="card-badge recovery-badge">Struggle Detected</span>
@@ -473,10 +647,10 @@ function App() {
                 <p className="error-msg">
                   ⚠️ We couldn't diagnose your misconception right now. Your progress is saved.
                 </p>
-                {apiError && <p className="error-detail">{apiError}</p>}
+                {apiError && <p className="error-detail text-sm mt-1">{apiError}</p>}
                 <button 
                   type="button" 
-                  className="btn btn-primary" 
+                  className="btn btn-primary mt-4" 
                   onClick={() => dispatch({ type: "REQUEST_HELP" })}
                 >
                   Try Again
@@ -489,7 +663,7 @@ function App() {
             )}
 
             {import.meta.env.DEV && (
-              <div className="dev-banner">
+              <div className="dev-banner mt-4">
                 <p><strong>Dev Mocks:</strong> Bypasses real diagnosis call</p>
                 <div className="button-group dev-buttons">
                   <button 
@@ -584,6 +758,7 @@ function App() {
           <div className="learning-card retest-stage">
             <div className="card-header recovery-header">
               <span className="card-badge recovery-badge">Recovery Verification</span>
+              <ListenButton text={getRetestSpeech()} />
               {state.recovery.recovered === false && (
                 <span className="retest-status-badge fail">Retest Failed</span>
               )}
@@ -594,17 +769,8 @@ function App() {
               Solve this related question to verify your understanding.
             </p>
 
-            {!dynamicQuestion && (
-              <pre className="code-block">
-                <code>{`def add(a, b):
-    return a + b
-
-result = add(2, 3)`}</code>
-              </pre>
-            )}
-
             {!retestSubmitted ? (
-              <form onSubmit={handleRetestSubmit} className="retest-form">
+              <form onSubmit={handleRetestSubmit} className="retest-form mt-4">
                 <fieldset className="options-fieldset">
                   <legend className="sr-only">Choose one answer option</legend>
                   <div className="options-list">
@@ -630,7 +796,7 @@ result = add(2, 3)`}</code>
 
                 <button 
                   type="submit" 
-                  className="btn btn-primary" 
+                  className="btn btn-primary mt-6" 
                   disabled={!selectedRetestOption}
                 >
                   Submit Re-test
@@ -640,7 +806,7 @@ result = add(2, 3)`}</code>
               <div className="feedback-section" role="status" aria-live="polite">
                 {state.recovery.recovered ? (
                   <div className="feedback-correct">
-                    <p className="feedback-msg">✓ Excellent! You successfully recovered the concept of parameters.</p>
+                    <p className="feedback-msg">✓ Excellent! You successfully recovered the concept.</p>
                     <button 
                       type="button" 
                       className="btn btn-primary" 
@@ -683,14 +849,14 @@ result = add(2, 3)`}</code>
           </div>
         )}
 
-        {state.phase === "mission" && (
+        {state.phase === "mission" && state.lesson && (
           <div>
             {state.mission.evaluationStatus === "error" && (
               <div className="error-alert mb-4" role="alert">
                 <p className="error-msg">⚠️ Evaluation failed: {apiError || "Unable to contact evaluation service."}</p>
                 <button 
                   type="button" 
-                  className="btn btn-primary btn-sm" 
+                  className="btn btn-primary btn-sm mt-2" 
                   onClick={handleEvaluateMission}
                 >
                   Retry Evaluation
@@ -700,6 +866,7 @@ result = add(2, 3)`}</code>
 
             <MissionCard
               missionState={state.mission}
+              mission={state.lesson.mission}
               onSaveSubmission={(submission) => dispatch({ type: "SET_MISSION_SUBMISSION", payload: { submission } })}
               onUseHint={() => dispatch({ type: "SET_HINT_USED" })}
               onSubmitMission={handleEvaluateMission}
@@ -709,9 +876,9 @@ result = add(2, 3)`}</code>
                   payload: {
                     passed,
                     feedback: passed 
-                      ? "Great job returning the calculated amount!" 
-                      : "The function calculates the amount, but fails to send it back using return.",
-                    weakness: passed ? null : "returnValues",
+                      ? "Excellent work! Your submission successfully meets the grading criteria." 
+                      : "The solution was close, but didn't completely cover all required rubric checks.",
+                    weakness: null,
                   },
                 });
               }}
@@ -727,7 +894,7 @@ result = add(2, 3)`}</code>
 
             <h3 className="mission-title">Mission Results</h3>
 
-            <div className="evaluation-box" role="status" aria-live="polite">
+            <div className="evaluation-box mt-4" role="status" aria-live="polite">
               {state.mission.passed ? (
                 <div className="eval-status pass">✓ MISSION PASSED</div>
               ) : (
@@ -736,16 +903,16 @@ result = add(2, 3)`}</code>
 
               <p className="eval-feedback"><strong>Feedback:</strong> {state.mission.feedback}</p>
               
-              {state.mission.weakness && (
+              {state.mission.weakness && state.concepts[state.mission.weakness] && (
                 <p className="eval-weakness text-danger">
-                  <strong>Concept Focus Required:</strong> Return Values
+                  <strong>Concept Focus Required:</strong> {state.concepts[state.mission.weakness].name}
                 </p>
               )}
             </div>
 
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary mt-6"
               onClick={handleGetNextAction}
             >
               Determine Next Step
@@ -758,7 +925,7 @@ result = add(2, 3)`}</code>
             {apiError && (
               <div className="error-alert mb-4" role="alert">
                 <p className="error-msg">⚠️ Failed to determine next step: {apiError}</p>
-                <button type="button" className="btn btn-primary btn-sm" onClick={handleGetNextAction}>
+                <button type="button" className="btn btn-primary btn-sm mt-2" onClick={handleGetNextAction}>
                   Retry Action Gen
                 </button>
               </div>
@@ -780,7 +947,7 @@ result = add(2, 3)`}</code>
 
       {/* Global polite announcer for accessibility */}
       <div className="sr-only" role="status" aria-live="polite">
-        Current phase: {state.phase}. Mastery score is {state.concepts[state.currentConcept]?.mastery || 0}% for {state.currentConcept}.
+        Current phase is: {state.phase}. {state.lesson ? `Mastery is ${state.concepts[state.currentConcept]?.mastery || 0}% for ${state.concepts[state.currentConcept]?.name || state.currentConcept}.` : ""}
       </div>
     </div>
   );

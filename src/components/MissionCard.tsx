@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { MissionState } from "../state/learnerTypes";
+import ListenButton from "./ListenButton";
 
 interface MissionCardProps {
   missionState: MissionState;
-  onSaveSubmission: (code: string) => void;
+  mission: {
+    title: string;
+    goal: string;
+    instructions: string;
+    starterContent: string;
+    rubric: string[];
+  };
+  onSaveSubmission: (submission: string) => void;
   onUseHint: () => void;
   onSubmitMission: () => void;
   onDevelopmentMockEvaluation: (passed: boolean) => void;
@@ -11,22 +19,29 @@ interface MissionCardProps {
 
 export default function MissionCard({
   missionState,
+  mission,
   onSaveSubmission,
   onUseHint,
   onSubmitMission,
   onDevelopmentMockEvaluation,
 }: MissionCardProps) {
-  const starterCode = `def total(price, quantity):
-    amount = price * quantity
-    # Edit below to return the correct calculation
-    `;
-  
-  const [code, setCode] = useState<string>(missionState.submission || starterCode);
+  const [submissionText, setSubmissionText] = useState<string>("");
+
+  // Initialize submissionText from state or starterContent
+  useEffect(() => {
+    if (missionState.submission) {
+      setSubmissionText(missionState.submission);
+    } else {
+      setSubmissionText(mission.starterContent);
+      onSaveSubmission(mission.starterContent);
+    }
+  }, [missionState.submission, mission.starterContent]);
+
   const [showHint, setShowHint] = useState<boolean>(missionState.hintUsed);
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
-    setCode(val);
+    setSubmissionText(val);
     onSaveSubmission(val);
   };
 
@@ -40,62 +55,67 @@ export default function MissionCard({
     onSubmitMission();
   };
 
+  const speechText = `Mission: ${mission.title}. Goal: ${mission.goal}. Instructions: ${mission.instructions}`;
+
   return (
     <div className="learning-card mission-card">
       <div className="card-header mission-header">
-        <span className="card-badge mission-badge">Learn-by-Doing Mission</span>
+        <div className="header-badges">
+          <span className="card-badge mission-badge">Learn-by-Doing Mission</span>
+        </div>
+        <ListenButton text={speechText} />
       </div>
 
-      <h3 className="mission-title">Mission: Complete the calculation</h3>
+      <h3 className="mission-title">{mission.title}</h3>
       
       <div className="mission-instructions">
-        <p>
-          We've set up a function `total` that receives a `price` and a `quantity`. 
-          Currently, it calculates the `amount` but doesn't return it to whoever called the function.
-        </p>
-        <p className="mission-objective">
-          <strong>Objective:</strong> Edit the code so that calling <code>total(5, 3)</code> produces the value <code>15</code>.
-        </p>
+        <p><strong>Goal:</strong> {mission.goal}</p>
+        <p><strong>Instructions:</strong> {mission.instructions}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mission-form">
+      <form onSubmit={handleSubmit} className="mission-form mt-4">
         <div className="textarea-container">
-          <label htmlFor="mission-code-input" className="code-input-label">
-            Write your Python solution below:
+          <label htmlFor="mission-response-input" className="code-input-label">
+            Write your solution below:
           </label>
           <textarea
-            id="mission-code-input"
+            id="mission-response-input"
             className="mission-textarea code-block"
-            value={code}
+            value={submissionText}
             onChange={handleTextareaChange}
-            maxLength={1000}
-            rows={8}
+            maxLength={4000}
+            rows={10}
             spellCheck={false}
           />
-          <div className="char-count">{code.length}/1000 characters</div>
+          <div className="char-count">{submissionText.length}/4000 characters</div>
         </div>
 
         {showHint ? (
-          <div className="hint-box" role="status" aria-live="polite">
+          <div className="hint-box mt-4" role="status" aria-live="polite">
             <p className="hint-text">
-              <strong>Hint:</strong> Use the <code>return</code> keyword to return the variable <code>amount</code> or <code>price * quantity</code> from the function.
+              <strong>Hint:</strong> Focus on satisfying the following criteria:
             </p>
+            <ul className="rubric-list-hint">
+              {mission.rubric.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
           </div>
         ) : (
           <button 
             type="button" 
-            className="btn btn-secondary btn-hint" 
+            className="btn btn-secondary btn-hint mt-4" 
             onClick={handleHintClick}
           >
             Use a Hint (-3 Mastery penalty)
           </button>
         )}
 
-        <div className="button-group mission-buttons">
+        <div className="button-group mission-buttons mt-4">
           <button 
             type="submit" 
             className="btn btn-primary"
-            disabled={missionState.evaluationStatus === "loading"}
+            disabled={missionState.evaluationStatus === "loading" || submissionText.trim().length === 0}
           >
             {missionState.evaluationStatus === "loading" ? "Evaluating..." : "Submit Mission Solution"}
           </button>
@@ -104,17 +124,14 @@ export default function MissionCard({
 
       {/* Show evaluation status/error */}
       {missionState.evaluationStatus === "loading" && (
-        <div className="evaluation-status-alert status-loading" role="status" aria-live="polite">
-          <p>AI Evaluator is inspecting your code submission...</p>
+        <div className="evaluation-status-alert status-loading mt-4" role="status" aria-live="polite">
+          <p>AI Evaluator is inspecting your submission...</p>
         </div>
       )}
 
-      {missionState.evaluationStatus === "idle" && missionState.attempted && (
-        <div className="evaluation-status-alert status-pending">
-          <p><strong>Note:</strong> Real AI Evaluation is pending server integration.</p>
-          <p className="dev-helper-text">
-            For development testing, choose whether this mock solution passes or fails:
-          </p>
+      {import.meta.env.DEV && missionState.evaluationStatus === "idle" && (
+        <div className="evaluation-status-alert status-pending mt-4">
+          <p><strong>Note:</strong> Dev Mocks: Bypass real evaluation call</p>
           <div className="button-group dev-buttons">
             <button 
               type="button" 

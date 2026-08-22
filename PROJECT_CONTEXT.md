@@ -23,13 +23,10 @@ Personalized learning should consider both:
 
 The application should support blind, low-vision, keyboard-only, motor-disabled, motion-sensitive, and other learners through accessible design without attempting to diagnose disability. Accessibility preferences must be entirely learner-controlled and persistent.
 
-## Primary Demo Subject
-* **Python Functions**
-  * Parameters
-  * Return values
-  * Function calls
-  
-*Scope Constraint:* Do not add multiple subjects or courses. Keep the MVP strictly focused on this core subject to ensure reliability.
+## Subject System
+* **Dynamic Topics:** The learner can input any topic of choice (e.g. Fractions, Photosynthesis, Python Functions).
+* **AI Path Generation:** Gemini builds a structured learning journey featuring exactly 3 foundational concepts, a customized introduction, an initial MCQ practice question, and a practical mission with starters/rubrics.
+* **Suggested Demo subject:** Python Functions (inputs, return values, executing calls) is highlighted as a quick starting suggest button.
 
 ## Locked Five Features (MVP Scope)
 1. **Adaptive Recovery Engine:** Detect struggle and change the teaching strategy.

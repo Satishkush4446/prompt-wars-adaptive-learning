@@ -34,10 +34,17 @@ Checklist for implementing the prompt-wars-adaptive-learning MVP.
 * [x] Implement Reduced Motion Mode (removes transition timers).
 * [x] Implement Enhanced Focus Mode (thick focus outlines on inputs/buttons).
 * [x] Persist accessibility settings in `localStorage`.
-* [ ] Implement Listen functionality using the browser SpeechSynthesis API.
-* [ ] Ensure the Listen functionality does not autoplay.
+* [x] Implement Listen functionality using the browser SpeechSynthesis API.
+* [x] Ensure the Listen functionality does not autoplay.
 * [x] Guarantee visual recovery step-by-step flows have full descriptive text equivalents.
 * [x] Verify no states or evaluations communicate information using color alone.
+* [x] Implement Dynamic Topic selection input on Welcome page.
+* [x] Connect real Gemini generateLesson action to build topic path.
+* [x] Support dynamic concepts states and updates in reducer.
+* [x] Evaluate missions textually using dynamic rubrics without code execution.
+* [x] Recommending dynamic concept Next Best Actions.
+* [x] Persist dynamic topic path and progress under v2 storage schema.
+* [x] Verify Vercel /api/ai endpoints run locally and pass validations.
 
 ## P1 — Quality & Verification
 * [x] Write unit tests for core algorithms.

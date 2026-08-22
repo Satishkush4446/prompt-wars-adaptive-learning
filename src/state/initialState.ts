@@ -2,33 +2,8 @@ import type { LearnerState } from "./learnerTypes";
 
 export const initialLearnerState: LearnerState = {
   phase: "welcome",
-  currentConcept: "parameters",
-  concepts: {
-    parameters: {
-      id: "parameters",
-      mastery: 0,
-      attempts: 0,
-      correctAttempts: 0,
-      incorrectAttempts: 0,
-      recentOutcome: null,
-    },
-    returnValues: {
-      id: "returnValues",
-      mastery: 0,
-      attempts: 0,
-      correctAttempts: 0,
-      incorrectAttempts: 0,
-      recentOutcome: null,
-    },
-    functionCalls: {
-      id: "functionCalls",
-      mastery: 0,
-      attempts: 0,
-      correctAttempts: 0,
-      incorrectAttempts: 0,
-      recentOutcome: null,
-    },
-  },
+  currentConcept: "",
+  concepts: {},
   attempts: [],
   consecutiveFailures: 0,
   recovery: {
@@ -58,4 +33,7 @@ export const initialLearnerState: LearnerState = {
     reducedMotion: false,
     enhancedFocus: false,
   },
+  lesson: null,
+  lessonStatus: "idle",
+  topicInput: "",
 };

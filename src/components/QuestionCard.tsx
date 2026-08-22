@@ -1,9 +1,18 @@
 import { useState } from "react";
 import type { ConceptId } from "../state/learnerTypes";
+import ListenButton from "./ListenButton";
 
 interface QuestionCardProps {
   currentAttemptCount: number;
   recentOutcome: "correct" | "incorrect" | null;
+  question: {
+    id: string;
+    conceptId: string;
+    prompt: string;
+    options: string[];
+    correctAnswer: string;
+    retryHint: string;
+  };
   onSubmitAnswer: (payload: { questionId: string; concept: ConceptId; answer: string; correct: boolean }) => void;
   onContinue: () => void;
   onHelpRequest: () => void;
@@ -12,6 +21,7 @@ interface QuestionCardProps {
 export default function QuestionCard({
   currentAttemptCount,
   recentOutcome,
+  question,
   onSubmitAnswer,
   onContinue,
   onHelpRequest,
@@ -19,26 +29,14 @@ export default function QuestionCard({
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [submitted, setSubmitted] = useState<boolean>(false);
 
-  const questionId = "q_double_func";
-  const concept: ConceptId = "parameters";
-  const correctAnswer = "8";
-  
-  const options = ["4", "6", "8", "result"];
-  
-  const codeSnippet = `def double(number):
-    result = number * 2
-    return result
-
-answer = double(4)`;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOption) return;
 
-    const isCorrect = selectedOption === correctAnswer;
+    const isCorrect = selectedOption === question.correctAnswer;
     onSubmitAnswer({
-      questionId,
-      concept,
+      questionId: question.id,
+      concept: question.conceptId,
       answer: selectedOption,
       correct: isCorrect,
     });
@@ -50,25 +48,26 @@ answer = double(4)`;
     setSubmitted(false);
   };
 
+  const speechText = `${question.prompt}. Options are: ${question.options.join(", ")}.`;
+
   return (
     <div className="learning-card">
       <div className="card-header">
-        <span className="card-badge">Concept Practice</span>
-        <span className="attempts-badge">Attempts: {currentAttemptCount}</span>
+        <div className="header-badges">
+          <span className="card-badge">Concept Practice</span>
+          <span className="attempts-badge">Attempts: {currentAttemptCount}</span>
+        </div>
+        <ListenButton text={speechText} />
       </div>
 
-      <h3 className="question-title">What value is stored in `answer`?</h3>
-
-      <pre className="code-block">
-        <code>{codeSnippet}</code>
-      </pre>
+      <h3 className="question-title">{question.prompt}</h3>
 
       {!submitted ? (
         <form onSubmit={handleSubmit} className="practice-form">
           <fieldset className="options-fieldset">
             <legend className="sr-only">Choose one answer option</legend>
             <div className="options-list">
-              {options.map((option) => (
+              {question.options.map((option) => (
                 <label 
                   key={option} 
                   className={`option-label ${selectedOption === option ? "selected" : ""}`}
@@ -109,10 +108,13 @@ answer = double(4)`;
         <div className="feedback-section" role="status" aria-live="polite">
           {recentOutcome === "correct" ? (
             <div className="feedback-correct">
-              <p className="feedback-msg">✓ That's right. <code>double(4)</code> returns <code>8</code>.</p>
+              <div className="feedback-header">
+                <p className="feedback-msg">✓ Correct — concept understood.</p>
+                <ListenButton text="Correct — concept understood." />
+              </div>
               <button 
                 type="button" 
-                className="btn btn-primary" 
+                className="btn btn-primary mt-4" 
                 onClick={onContinue}
               >
                 Continue to Mission
@@ -120,10 +122,13 @@ answer = double(4)`;
             </div>
           ) : (
             <div className="feedback-incorrect">
-              <p className="feedback-msg">
-                Not quite. Look closely at what the function sends back with <code>return</code>.
-              </p>
-              <div className="button-group">
+              <div className="feedback-header">
+                <p className="feedback-msg">
+                  Incorrect — try again. Hint: {question.retryHint}
+                </p>
+                <ListenButton text={`Incorrect — try again. Hint: ${question.retryHint}`} />
+              </div>
+              <div className="button-group mt-4">
                 <button 
                   type="button" 
                   className="btn btn-primary" 

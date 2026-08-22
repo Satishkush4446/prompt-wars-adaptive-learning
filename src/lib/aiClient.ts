@@ -7,6 +7,37 @@ export interface AIResponse<T> {
   };
 }
 
+export interface LessonConcept {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface LessonQuestion {
+  id: string;
+  conceptId: string;
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  retryHint: string;
+}
+
+export interface LessonMission {
+  title: string;
+  goal: string;
+  instructions: string;
+  starterContent: string;
+  rubric: string[];
+}
+
+export interface GeneratedLesson {
+  topicTitle: string;
+  intro: string;
+  concepts: LessonConcept[];
+  initialQuestion: LessonQuestion;
+  mission: LessonMission;
+}
+
 export interface MisconceptionDiagnosis {
   misconception: string;
   recoveryFocus: string;
@@ -63,12 +94,12 @@ export interface MissionEvaluation {
   passed: boolean;
   conceptApplication: "weak" | "developing" | "strong";
   strength: string;
-  weakness: "parameters" | "returnValues" | "functionCalls" | "none";
+  weakness: string; // Dynamic concept ID (e.g. 'light-absorption') or 'none'
   feedback: string;
 }
 
 export interface NextActionRecommendation {
-  concept: "parameters" | "returnValues" | "functionCalls";
+  concept: string; // Dynamic concept ID
   actionType: "practice" | "review" | "challenge";
   title: string;
   reason: string;
@@ -107,6 +138,10 @@ async function callApi<T>(action: string, context: Record<string, any>): Promise
   }
 }
 
+export async function generateLesson(context: { topic: string }): Promise<GeneratedLesson> {
+  return callApi<GeneratedLesson>("generateLesson", context);
+}
+
 export async function diagnoseMisconception(context: {
   topic: string;
   concept: string;
@@ -136,7 +171,7 @@ export async function evaluateMission(context: {
   topic: string;
   concept: string;
   missionGoal: string;
-  rubric: string;
+  rubric: string[];
   learnerSubmission: string;
   learnerState: any;
 }): Promise<MissionEvaluation> {

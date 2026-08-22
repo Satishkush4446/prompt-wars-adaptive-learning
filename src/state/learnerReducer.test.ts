@@ -17,11 +17,40 @@ if (typeof window === "undefined") {
   };
 }
 
+const mockLesson = {
+  topicTitle: "Python Functions",
+  intro: "Learn inputs and outputs.",
+  concepts: [
+    { id: "parameters", name: "Parameters", description: "Function inputs." },
+    { id: "returnValues", name: "Return values", description: "Function outputs." },
+    { id: "functionCalls", name: "Function calls", description: "Executing functions." }
+  ],
+  initialQuestion: {
+    id: "q1",
+    conceptId: "parameters",
+    prompt: "What value is double(4)?",
+    options: ["4", "6", "8", "10"],
+    correctAnswer: "8",
+    retryHint: "Think multiplying."
+  },
+  mission: {
+    title: "Mission parameters",
+    goal: "Write total function.",
+    instructions: "Return inputs multiplied.",
+    starterContent: "def total(p, q):",
+    rubric: ["Calculates product", "Returns result"]
+  }
+};
+
 describe("learnerReducer & storage tests", () => {
   let state: LearnerState;
 
   beforeEach(() => {
-    state = JSON.parse(JSON.stringify(initialLearnerState)); // Deep copy initial state
+    // Initialize concepts state dynamically using mockLesson
+    state = learnerReducer(initialLearnerState, {
+      type: "SET_GENERATED_LESSON",
+      payload: { lesson: mockLesson }
+    });
     localStorage.clear();
   });
 
@@ -233,12 +262,12 @@ describe("learnerReducer & storage tests", () => {
     expect(loadedFromEmpty).toEqual(initialLearnerState);
 
     // 2. Corrupt string that fails JSON.parse should fallback safely
-    localStorage.setItem("adaptive-learning-state-v1", "corrupt-json-{");
+    localStorage.setItem("adaptive-learning-state-v2", "corrupt-json-{");
     const loadedFromCorrupt = loadLearnerState();
     expect(loadedFromCorrupt).toEqual(initialLearnerState);
 
     // 3. Valid JSON but invalid structure (missing fields or wrong types) should fallback safely
-    localStorage.setItem("adaptive-learning-state-v1", JSON.stringify({ phase: "invalidPhase", concepts: {} }));
+    localStorage.setItem("adaptive-learning-state-v2", JSON.stringify({ phase: "invalidPhase", concepts: {} }));
     const loadedFromInvalid = loadLearnerState();
     expect(loadedFromInvalid).toEqual(initialLearnerState);
 

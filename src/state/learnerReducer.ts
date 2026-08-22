@@ -5,7 +5,8 @@ import type {
   RecoveryMode, 
   NextAction, 
   AccessibilityPreferences,
-  LearningPhase
+  LearningPhase,
+  GeneratedLesson
 } from "./learnerTypes";
 import { initialLearnerState } from "./initialState";
 
@@ -48,7 +49,11 @@ export type LearnerAction =
       type: "SET_ACCESSIBILITY_PREFERENCE"; 
       payload: { key: keyof AccessibilityPreferences; value: boolean } 
     }
-  | { type: "RESET_LEARNING_SESSION" };
+  | { type: "RESET_LEARNING_SESSION" }
+  | { type: "SET_TOPIC_INPUT"; payload: { topicInput: string } }
+  | { type: "START_LESSON_GENERATION" }
+  | { type: "SET_GENERATED_LESSON"; payload: { lesson: GeneratedLesson } }
+  | { type: "LESSON_GENERATION_ERROR" };
 
 const clampMastery = (value: number): number => {
   return Math.max(0, Math.min(100, value));
@@ -56,6 +61,52 @@ const clampMastery = (value: number): number => {
 
 export function learnerReducer(state: LearnerState, action: LearnerAction): LearnerState {
   switch (action.type) {
+    case "SET_TOPIC_INPUT":
+      return {
+        ...state,
+        topicInput: action.payload.topicInput,
+      };
+
+    case "START_LESSON_GENERATION":
+      return {
+        ...state,
+        lessonStatus: "loading",
+      };
+
+    case "SET_GENERATED_LESSON": {
+      const { lesson } = action.payload;
+      const initialConcepts: Record<ConceptId, any> = {};
+      
+      // Initialize dynamic concept states
+      lesson.concepts.forEach((concept) => {
+        initialConcepts[concept.id] = {
+          id: concept.id,
+          name: concept.name,
+          description: concept.description,
+          mastery: 0,
+          attempts: 0,
+          correctAttempts: 0,
+          incorrectAttempts: 0,
+          recentOutcome: null,
+        };
+      });
+
+      return {
+        ...state,
+        lesson,
+        lessonStatus: "success",
+        currentConcept: lesson.initialQuestion.conceptId,
+        concepts: initialConcepts,
+        phase: "intro",
+      };
+    }
+
+    case "LESSON_GENERATION_ERROR":
+      return {
+        ...state,
+        lessonStatus: "error",
+      };
+
     case "START_LEARNING":
       return {
         ...state,
@@ -79,7 +130,16 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         timestamp: Date.now(),
       };
 
-      const currentConceptState = state.concepts[concept];
+      const currentConceptState = state.concepts[concept] || {
+        id: concept,
+        name: concept,
+        description: "",
+        mastery: 0,
+        attempts: 0,
+        correctAttempts: 0,
+        incorrectAttempts: 0,
+        recentOutcome: null,
+      };
       const newAttempts = currentConceptState.attempts + 1;
       const newCorrectAttempts = currentConceptState.correctAttempts + (correct ? 1 : 0);
       const newIncorrectAttempts = currentConceptState.incorrectAttempts + (correct ? 0 : 1);
@@ -100,7 +160,7 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
       if (newConsecutiveFailures >= 2) {
         newRecoveryState.triggered = true;
         newRecoveryState.triggerReason = "two_failures";
-        newRecoveryState.diagnosisStatus = "idle"; // reset for the diagnosis step
+        newRecoveryState.diagnosisStatus = "idle";
         nextPhase = "recoveryDiagnosis";
       }
 
@@ -223,7 +283,16 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         timestamp: Date.now(),
       };
 
-      const currentConceptState = state.concepts[concept];
+      const currentConceptState = state.concepts[concept] || {
+        id: concept,
+        name: concept,
+        description: "",
+        mastery: 0,
+        attempts: 0,
+        correctAttempts: 0,
+        incorrectAttempts: 0,
+        recentOutcome: null,
+      };
       let newMastery = currentConceptState.mastery;
       let nextPhase: LearningPhase = state.phase;
       let newConsecutiveFailures = state.consecutiveFailures;
@@ -295,7 +364,16 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
 
     case "SET_MISSION_RESULT": {
       const { passed, feedback, weakness } = action.payload;
-      const currentConceptState = state.concepts[state.currentConcept];
+      const currentConceptState = state.concepts[state.currentConcept] || {
+        id: state.currentConcept,
+        name: state.currentConcept,
+        description: "",
+        mastery: 0,
+        attempts: 0,
+        correctAttempts: 0,
+        incorrectAttempts: 0,
+        recentOutcome: null,
+      };
 
       let masteryChange = passed ? 20 : -10;
       let newMastery = clampMastery(currentConceptState.mastery + masteryChange);

@@ -948,3 +948,90 @@ html.enhanced-focus *:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+
+/* --- ACCESSIBILITY-FIRST DESIGN SYSTEM MODIFIERS --- */
+
+/* Larger Text Modifier */
+.large-text {
+  --font-body: 1.25rem;
+  --font-h1: 2.5rem;
+  --font-h2: 1.85rem;
+  --font-h3: 1.5rem;
+  --font-small: 1rem;
+}
+.large-text .btn {
+  padding: 16px 28px;
+}
+.large-text .option-label {
+  padding: 18px 24px;
+}
+.large-text .flow-step-box {
+  min-height: auto;
+}
+
+/* High Contrast Modifier */
+.high-contrast {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #222222;
+  --border: #000000;
+  --border-hover: #000000;
+  --accent-blue: #0000ff;
+  --accent-violet: #4b0082;
+  --accent-cyan: #008080;
+  --success: #006400;
+  --success-bg: #e6ffe6;
+  --danger: #8b0000;
+  --danger-bg: #ffe6e6;
+  --accent-gradient: #0000ff;
+}
+.high-contrast .learning-card,
+.high-contrast .centered-card,
+.high-contrast .learner-state-card {
+  border: 3px solid #000000 !important;
+  box-shadow: none !important;
+  background-color: #ffffff !important;
+}
+.high-contrast .option-label,
+.high-contrast .flow-step-box,
+.high-contrast .recovery-mode-btn {
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+}
+.high-contrast .option-label.selected,
+.high-contrast .recovery-mode-btn.selected {
+  outline: 3px solid #0000ff !important;
+  background-color: #e6f0ff !important;
+}
+.high-contrast .code-block,
+.high-contrast .mission-textarea {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+.high-contrast .takeaway-box {
+  background-color: #f7e6ff !important;
+  border: 2px solid #4b0082 !important;
+  color: #000000 !important;
+}
+
+/* Reduced Motion Modifier */
+.reduced-motion * {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* Enhanced Focus Modifier */
+.enhanced-focus *:focus {
+  outline: 4px solid var(--accent-blue, #007aff) !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 8px rgba(0, 122, 255, 0.4) !important;
+}
+/* Ensure focused elements are visually highlighted in High Contrast */
+.high-contrast.enhanced-focus *:focus {
+  outline: 5px solid #ff0000 !important;
+  outline-offset: 6px !important;
+}
+

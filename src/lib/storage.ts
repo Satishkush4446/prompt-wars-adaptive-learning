@@ -1,7 +1,7 @@
-import type { LearnerState, ConceptId } from "../state/learnerTypes";
+import type { LearnerState } from "../state/learnerTypes";
 import { initialLearnerState } from "../state/initialState";
 
-const STORAGE_KEY = "adaptive-learning-state-v1";
+const STORAGE_KEY = "adaptive-learning-state-v2";
 
 const VALID_PHASES = new Set([
   "welcome",
@@ -16,12 +16,6 @@ const VALID_PHASES = new Set([
   "nextAction"
 ]);
 
-const VALID_CONCEPTS = new Set<ConceptId>([
-  "parameters",
-  "returnValues",
-  "functionCalls"
-]);
-
 function isValidLearnerState(data: any): data is LearnerState {
   if (!data || typeof data !== "object") return false;
 
@@ -31,7 +25,7 @@ function isValidLearnerState(data: any): data is LearnerState {
   }
 
   // 2. Verify currentConcept
-  if (typeof data.currentConcept !== "string" || !VALID_CONCEPTS.has(data.currentConcept)) {
+  if (typeof data.currentConcept !== "string") {
     return false;
   }
 
@@ -39,15 +33,17 @@ function isValidLearnerState(data: any): data is LearnerState {
   if (!data.concepts || typeof data.concepts !== "object") {
     return false;
   }
-  for (const key of Array.from(VALID_CONCEPTS)) {
-    const concept = data.concepts[key];
+  for (const [key, concept] of Object.entries(data.concepts)) {
     if (!concept || typeof concept !== "object") return false;
-    if (concept.id !== key) return false;
-    if (typeof concept.mastery !== "number") return false;
-    if (typeof concept.attempts !== "number") return false;
-    if (typeof concept.correctAttempts !== "number") return false;
-    if (typeof concept.incorrectAttempts !== "number") return false;
-    if (concept.recentOutcome !== null && concept.recentOutcome !== "correct" && concept.recentOutcome !== "incorrect") {
+    const c = concept as any;
+    if (c.id !== key) return false;
+    if (typeof c.name !== "string") return false;
+    if (typeof c.description !== "string") return false;
+    if (typeof c.mastery !== "number") return false;
+    if (typeof c.attempts !== "number") return false;
+    if (typeof c.correctAttempts !== "number") return false;
+    if (typeof c.incorrectAttempts !== "number") return false;
+    if (c.recentOutcome !== null && c.recentOutcome !== "correct" && c.recentOutcome !== "incorrect") {
       return false;
     }
   }
@@ -60,7 +56,7 @@ function isValidLearnerState(data: any): data is LearnerState {
     if (!attempt || typeof attempt !== "object") return false;
     if (typeof attempt.id !== "string") return false;
     if (typeof attempt.questionId !== "string") return false;
-    if (!VALID_CONCEPTS.has(attempt.concept)) return false;
+    if (typeof attempt.concept !== "string") return false;
     if (typeof attempt.answer !== "string") return false;
     if (typeof attempt.correct !== "boolean") return false;
     if (typeof attempt.timestamp !== "number") return false;
@@ -80,10 +76,14 @@ function isValidLearnerState(data: any): data is LearnerState {
     return false;
   }
 
-  // 6. Verify other basic structure types just in case
+  // 6. Verify other basic structure types
   if (typeof data.consecutiveFailures !== "number") return false;
   if (!data.recovery || typeof data.recovery !== "object") return false;
   if (!data.mission || typeof data.mission !== "object") return false;
+  
+  if (typeof data.topicInput !== "string") return false;
+  if (typeof data.lessonStatus !== "string") return false;
+  if (data.lesson !== null && typeof data.lesson !== "object") return false;
 
   return true;
 }
@@ -99,6 +99,11 @@ export function saveLearnerState(state: LearnerState): void {
 
 export function loadLearnerState(): LearnerState {
   try {
+    // Graceful migration fallback: check and clear version 1 if present to keep storage clean
+    if (localStorage.getItem("adaptive-learning-state-v1")) {
+      localStorage.removeItem("adaptive-learning-state-v1");
+    }
+
     const serialized = localStorage.getItem(STORAGE_KEY);
     if (!serialized) {
       return initialLearnerState;
