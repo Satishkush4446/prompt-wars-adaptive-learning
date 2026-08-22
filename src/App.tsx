@@ -9,6 +9,7 @@ import {
   getNextBestAction,
   generateLesson
 } from "./lib/aiClient";
+import type { VisualRecoveryData, RecoveryContentData } from "./lib/aiClient";
 import type { RecoveryMode as RecoveryModeType, LearningDuration, LearningMode } from "./state/learnerTypes";
 import { resolveSpeechLocale } from "./hooks/useSpeechSynthesis";
 
@@ -199,7 +200,8 @@ function App() {
         try {
           const wrongAnswers = state.attempts
             .filter(a => a.concept === state.currentConcept && !a.correct)
-            .map(a => a.answer);
+            .map(a => a.answer)
+            .slice(-5); // Bound: send only the 5 most recent wrong answers
 
           const result = await diagnoseMisconception({
             topic: lesson.topicTitle,
@@ -241,7 +243,8 @@ function App() {
     try {
       const wrongAnswers = state.attempts
         .filter(a => a.concept === state.currentConcept && !a.correct)
-        .map(a => a.answer);
+        .map(a => a.answer)
+        .slice(-5); // Bound: send only the 5 most recent wrong answers
 
       const content = await generateRecovery({
         topic: state.lesson.topicTitle,
@@ -256,7 +259,7 @@ function App() {
 
       // Visual Mode verification: MUST include non-empty accessibleExplanation
       if (selectedMode === "visual") {
-        const visualData = content as any;
+        const visualData = content as VisualRecoveryData;
         if (!visualData.accessibleExplanation || visualData.accessibleExplanation.trim().length === 0) {
           throw new Error("Visual representation generated is missing an accessible explanation.");
         }
@@ -285,7 +288,6 @@ function App() {
         missionGoal: state.lesson.mission.goal,
         rubric: state.lesson.mission.rubric,
         learnerSubmission: state.mission.submission,
-        learnerState: state,
         learningLanguage: state.learningLanguage
       });
 
@@ -314,7 +316,7 @@ function App() {
     dispatch({ type: "START_NEXT_ACTION" });
     setApiError(null);
     try {
-      const wrongAttempts = state.attempts.filter(a => !a.correct);
+      const wrongAttempts = state.attempts.filter(a => !a.correct).slice(-10); // Bound: last 10 wrong only
       const recommendation = await getNextBestAction({
         concepts: state.concepts,
         recentAttempts: wrongAttempts.map(a => ({ concept: a.concept, correct: a.correct, answer: a.answer })),
@@ -418,7 +420,7 @@ function App() {
         steps: [{ label: "Address Input", value: "address = 'Paris'", explanation: "Addresses envelopes" }],
         accessibleExplanation: "Visual diagram representing mail envelope slot assignment."
       })
-    };
+    } as RecoveryContentData;
 
     setTimeout(() => {
       dispatch({ 
@@ -495,6 +497,15 @@ function App() {
         </div>
 
         <div className="header-actions">
+          {state.phase !== "welcome" && (
+            <button
+              type="button"
+              className="btn btn-secondary reset-session-btn"
+              onClick={() => dispatch({ type: "RESET_LEARNING_SESSION" })}
+            >
+              Start Over
+            </button>
+          )}
           <button
             ref={a11yButtonRef}
             type="button"
@@ -854,12 +865,21 @@ function App() {
                 )}
               </div>
 
-              <button
-                type="submit"
-                className="btn btn-primary btn-large w-full mt-6"
-              >
-                Continue
-              </button>
+              <div className="button-group w-full max-w-lg mt-6 flex gap-4">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-large w-1/3"
+                  onClick={() => dispatch({ type: "GO_BACK_TO_TOPIC" })}
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-large w-2/3"
+                >
+                  Continue
+                </button>
+              </div>
             </form>
           </div>
         )}
@@ -929,10 +949,17 @@ function App() {
                   </fieldset>
                 </div>
 
-                <div className="button-group w-full max-w-lg mt-8">
+                <div className="button-group w-full max-w-lg mt-8 flex gap-4">
                   <button
                     type="button"
-                    className="btn btn-primary btn-large w-full"
+                    className="btn btn-secondary btn-large w-1/3"
+                    onClick={() => dispatch({ type: "GO_BACK_TO_LANGUAGE" })}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-large w-2/3"
                     onClick={() => handleBuildLesson(selectedDuration)}
                   >
                     Build Learning Path

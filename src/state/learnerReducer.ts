@@ -11,7 +11,10 @@ import type {
   LearningMode,
   LearningLanguage,
   StateWithHistory,
-  UndoableAction
+  UndoableAction,
+  ConceptState,
+  LessonConcept,
+  RecoveryContentData
 } from "./learnerTypes";
 import { initialLearnerState } from "./initialState";
 
@@ -31,7 +34,7 @@ export type LearnerAction =
   | { type: "RECOVERY_DIAGNOSIS_ERROR" }
   | { type: "SELECT_RECOVERY_MODE"; payload: { selectedMode: RecoveryMode } }
   | { type: "START_RECOVERY_CONTENT" }
-  | { type: "SET_RECOVERY_CONTENT_SUCCESS"; payload: { recoveryContent: any } }
+  | { type: "SET_RECOVERY_CONTENT_SUCCESS"; payload: { recoveryContent: RecoveryContentData } }
   | { type: "RECOVERY_CONTENT_ERROR" }
   | { type: "START_RETEST" }
   | { 
@@ -59,6 +62,8 @@ export type LearnerAction =
   | { type: "SET_TOPIC_SUBMIT"; payload: { topicInput: string } }
   | { type: "SET_LANGUAGE_PREFERENCE"; payload: { language: LearningLanguage } }
   | { type: "SET_TIME_PREFERENCE"; payload: { duration: LearningDuration | null } }
+  | { type: "GO_BACK_TO_TOPIC" }
+  | { type: "GO_BACK_TO_LANGUAGE" }
   | { type: "START_LESSON_GENERATION" }
   | { type: "SET_GENERATED_LESSON"; payload: { lesson: GeneratedLesson } }
   | { type: "LESSON_GENERATION_ERROR" }
@@ -70,6 +75,135 @@ const clampMastery = (value: number): number => {
   return Math.max(0, Math.min(100, value));
 };
 
+export function initializeConcepts(concepts: LessonConcept[]): Record<ConceptId, ConceptState> {
+  const initialConcepts: Record<ConceptId, ConceptState> = {};
+  concepts.forEach((concept) => {
+    initialConcepts[concept.id] = {
+      id: concept.id,
+      name: concept.name,
+      description: concept.description,
+      mastery: 0,
+      attempts: 0,
+      correctAttempts: 0,
+      incorrectAttempts: 0,
+      recentOutcome: null,
+    };
+  });
+  return initialConcepts;
+}
+
+export function computePracticeAnswerUpdate(
+  currentConceptState: ConceptState,
+  correct: boolean,
+  stateConsecutiveFailures: number,
+  questionId: string,
+  concept: ConceptId,
+  answer: string
+) {
+  const newAttempt: Attempt = {
+    id: Math.random().toString(36).substring(2, 9),
+    questionId,
+    concept,
+    answer,
+    correct,
+    timestamp: Date.now(),
+  };
+
+  const newAttempts = currentConceptState.attempts + 1;
+  const newCorrectAttempts = currentConceptState.correctAttempts + (correct ? 1 : 0);
+  const newIncorrectAttempts = currentConceptState.incorrectAttempts + (correct ? 0 : 1);
+
+  let newMastery = currentConceptState.mastery;
+  let newConsecutiveFailures = stateConsecutiveFailures;
+
+  if (correct) {
+    newMastery = clampMastery(newMastery + 12);
+    newConsecutiveFailures = 0;
+  } else {
+    newMastery = clampMastery(newMastery - 8);
+    newConsecutiveFailures += 1;
+  }
+
+  const shouldTriggerRecovery = newConsecutiveFailures >= 2;
+
+  const newConceptState: ConceptState = {
+    ...currentConceptState,
+    attempts: newAttempts,
+    correctAttempts: newCorrectAttempts,
+    incorrectAttempts: newIncorrectAttempts,
+    recentOutcome: correct ? "correct" : "incorrect",
+    mastery: newMastery,
+  };
+
+  return {
+    newConceptState,
+    newConsecutiveFailures,
+    newAttempt,
+    shouldTriggerRecovery,
+  };
+}
+
+export function computeRetestAnswerUpdate(
+  currentConceptState: ConceptState,
+  correct: boolean,
+  stateConsecutiveFailures: number,
+  questionId: string,
+  concept: ConceptId,
+  answer: string
+) {
+  const newAttempt: Attempt = {
+    id: Math.random().toString(36).substring(2, 9),
+    questionId,
+    concept,
+    answer,
+    correct,
+    timestamp: Date.now(),
+  };
+
+  let newMastery = currentConceptState.mastery;
+  let newConsecutiveFailures = stateConsecutiveFailures;
+  let nextPhase: LearningPhase = "retest";
+
+  if (correct) {
+    newMastery = clampMastery(newMastery + 18);
+    newConsecutiveFailures = 0;
+    nextPhase = "mission";
+  } else {
+    newMastery = clampMastery(newMastery - 8);
+  }
+
+  const newConceptState: ConceptState = {
+    ...currentConceptState,
+    attempts: currentConceptState.attempts + 1,
+    correctAttempts: currentConceptState.correctAttempts + (correct ? 1 : 0),
+    incorrectAttempts: currentConceptState.incorrectAttempts + (correct ? 0 : 1),
+    recentOutcome: correct ? "correct" : "incorrect",
+    mastery: newMastery,
+  };
+
+  return {
+    newConceptState,
+    newAttempt,
+    newConsecutiveFailures,
+    nextPhase,
+  };
+}
+
+export function computeMissionResultUpdate(
+  currentConceptState: ConceptState,
+  passed: boolean,
+  hintUsed: boolean
+): number {
+  const masteryChange = passed ? 20 : -10;
+  let newMastery = currentConceptState.mastery + masteryChange;
+
+  if (hintUsed) {
+    newMastery -= 3;
+  }
+
+  return clampMastery(newMastery);
+}
+
 export function learnerReducer(state: LearnerState, action: LearnerAction): LearnerState {
   switch (action.type) {
     case "SET_TOPIC_INPUT":
@@ -78,18 +212,56 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         topicInput: action.payload.topicInput,
       };
 
-    case "SET_TOPIC_SUBMIT":
+    case "SET_TOPIC_SUBMIT": {
+      const topicChanged = state.topicInput !== action.payload.topicInput;
+      let newState = state;
+      
+      if (topicChanged && state.lesson) {
+         newState = {
+           ...initialLearnerState,
+           accessibility: state.accessibility,
+           learningLanguage: state.learningLanguage,
+           learningDurationMinutes: state.learningDurationMinutes,
+         };
+      }
+      
       return {
-        ...state,
+        ...newState,
         topicInput: action.payload.topicInput,
         phase: "languagePreference",
       };
+    }
 
-    case "SET_LANGUAGE_PREFERENCE":
+    case "SET_LANGUAGE_PREFERENCE": {
+      const languageChanged = state.learningLanguage !== action.payload.language;
+      let newState = state;
+      
+      if (languageChanged && state.lesson) {
+         newState = {
+           ...initialLearnerState,
+           accessibility: state.accessibility,
+           topicInput: state.topicInput,
+           learningDurationMinutes: state.learningDurationMinutes,
+         };
+      }
+      
       return {
-        ...state,
+        ...newState,
         learningLanguage: action.payload.language,
         phase: "timePreference",
+      };
+    }
+
+    case "GO_BACK_TO_TOPIC":
+      return {
+        ...state,
+        phase: "welcome",
+      };
+
+    case "GO_BACK_TO_LANGUAGE":
+      return {
+        ...state,
+        phase: "languagePreference",
       };
 
     case "SET_TIME_PREFERENCE":
@@ -106,21 +278,7 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
 
     case "SET_GENERATED_LESSON": {
       const { lesson } = action.payload;
-      const initialConcepts: Record<ConceptId, any> = {};
-      
-      // Initialize dynamic concept states
-      lesson.concepts.forEach((concept) => {
-        initialConcepts[concept.id] = {
-          id: concept.id,
-          name: concept.name,
-          description: concept.description,
-          mastery: 0,
-          attempts: 0,
-          correctAttempts: 0,
-          incorrectAttempts: 0,
-          recentOutcome: null,
-        };
-      });
+      const initialConcepts = initializeConcepts(lesson.concepts);
 
       return {
         ...state,
@@ -171,15 +329,6 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
 
     case "SUBMIT_PRACTICE_ANSWER": {
       const { questionId, concept, answer, correct } = action.payload;
-      const newAttempt: Attempt = {
-        id: Math.random().toString(36).substring(2, 9),
-        questionId,
-        concept,
-        answer,
-        correct,
-        timestamp: Date.now(),
-      };
-
       const currentConceptState = state.concepts[concept] || {
         id: concept,
         name: concept,
@@ -190,24 +339,25 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         incorrectAttempts: 0,
         recentOutcome: null,
       };
-      const newAttempts = currentConceptState.attempts + 1;
-      const newCorrectAttempts = currentConceptState.correctAttempts + (correct ? 1 : 0);
-      const newIncorrectAttempts = currentConceptState.incorrectAttempts + (correct ? 0 : 1);
 
-      let newMastery = currentConceptState.mastery;
-      let newConsecutiveFailures = state.consecutiveFailures;
-      let nextPhase: LearningPhase = state.phase;
+      const {
+        newConceptState,
+        newConsecutiveFailures,
+        newAttempt,
+        shouldTriggerRecovery,
+      } = computePracticeAnswerUpdate(
+        currentConceptState,
+        correct,
+        state.consecutiveFailures,
+        questionId,
+        concept,
+        answer
+      );
+
       const newRecoveryState = { ...state.recovery };
+      let nextPhase: LearningPhase = state.phase;
 
-      if (correct) {
-        newMastery = clampMastery(newMastery + 12);
-        newConsecutiveFailures = 0;
-      } else {
-        newMastery = clampMastery(newMastery - 8);
-        newConsecutiveFailures += 1;
-      }
-
-      if (newConsecutiveFailures >= 2) {
+      if (shouldTriggerRecovery) {
         newRecoveryState.triggered = true;
         newRecoveryState.triggerReason = "two_failures";
         newRecoveryState.diagnosisStatus = "idle";
@@ -221,14 +371,7 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         attempts: [...state.attempts, newAttempt],
         concepts: {
           ...state.concepts,
-          [concept]: {
-            ...currentConceptState,
-            attempts: newAttempts,
-            correctAttempts: newCorrectAttempts,
-            incorrectAttempts: newIncorrectAttempts,
-            recentOutcome: correct ? "correct" : "incorrect",
-            mastery: newMastery,
-          },
+          [concept]: newConceptState,
         },
         recovery: newRecoveryState,
       };
@@ -324,15 +467,6 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
 
     case "SUBMIT_RETEST": {
       const { questionId, concept, answer, correct } = action.payload;
-      const newAttempt: Attempt = {
-        id: Math.random().toString(36).substring(2, 9),
-        questionId,
-        concept,
-        answer,
-        correct,
-        timestamp: Date.now(),
-      };
-
       const currentConceptState = state.concepts[concept] || {
         id: concept,
         name: concept,
@@ -343,17 +477,20 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         incorrectAttempts: 0,
         recentOutcome: null,
       };
-      let newMastery = currentConceptState.mastery;
-      let nextPhase: LearningPhase = state.phase;
-      let newConsecutiveFailures = state.consecutiveFailures;
 
-      if (correct) {
-        newMastery = clampMastery(newMastery + 18);
-        newConsecutiveFailures = 0;
-        nextPhase = "mission";
-      } else {
-        newMastery = clampMastery(newMastery - 8);
-      }
+      const {
+        newConceptState,
+        newAttempt,
+        newConsecutiveFailures,
+        nextPhase,
+      } = computeRetestAnswerUpdate(
+        currentConceptState,
+        correct,
+        state.consecutiveFailures,
+        questionId,
+        concept,
+        answer
+      );
 
       return {
         ...state,
@@ -362,14 +499,7 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         attempts: [...state.attempts, newAttempt],
         concepts: {
           ...state.concepts,
-          [concept]: {
-            ...currentConceptState,
-            attempts: currentConceptState.attempts + 1,
-            correctAttempts: currentConceptState.correctAttempts + (correct ? 1 : 0),
-            incorrectAttempts: currentConceptState.incorrectAttempts + (correct ? 0 : 1),
-            recentOutcome: correct ? "correct" : "incorrect",
-            mastery: newMastery,
-          },
+          [concept]: newConceptState,
         },
         recovery: {
           ...state.recovery,
@@ -425,12 +555,11 @@ export function learnerReducer(state: LearnerState, action: LearnerAction): Lear
         recentOutcome: null,
       };
 
-      let masteryChange = passed ? 20 : -10;
-      let newMastery = clampMastery(currentConceptState.mastery + masteryChange);
-
-      if (state.mission.hintUsed) {
-        newMastery = clampMastery(newMastery - 3);
-      }
+      const newMastery = computeMissionResultUpdate(
+        currentConceptState,
+        passed,
+        state.mission.hintUsed
+      );
 
       return {
         ...state,

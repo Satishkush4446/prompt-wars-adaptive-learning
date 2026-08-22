@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import type { LessonConcept } from "../src/lib/aiClient";
 
 // Standard response helper
 function sendError(res: any, status: number, code: string, message: string) {
@@ -98,7 +99,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // Set up SDK client and model override
-  const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
   const ai = new GoogleGenAI({ apiKey });
 
   const startTimestamp = Date.now();
@@ -478,7 +479,7 @@ Student States:
       if (!initialQ.options.includes(initialQ.correctAnswer)) {
         throw new Error("correctAnswer is not present in options");
       }
-      const matchConcept = parsedData.concepts.find((c: any) => c.id === initialQ.conceptId);
+      const matchConcept = parsedData.concepts.find((c: LessonConcept) => c.id === initialQ.conceptId);
       if (!matchConcept) {
         throw new Error("initialQuestion conceptId does not match any generated concepts");
       }

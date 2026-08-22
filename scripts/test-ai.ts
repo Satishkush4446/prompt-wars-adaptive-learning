@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 // Uses GEMINI_API_KEY from environment. Run with:
 // GEMINI_API_KEY=your-key npx tsx scripts/test-ai.ts
 const apiKey = process.env.GEMINI_API_KEY || "";
-const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
 if (!apiKey) {
   console.error("Error: GEMINI_API_KEY environment variable is not set.");

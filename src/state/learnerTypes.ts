@@ -1,3 +1,6 @@
+import type { RecoveryContentData } from "../lib/aiClient";
+export type { RecoveryContentData };
+
 export type ConceptId = string;
 
 export type LearningPhase =
@@ -51,7 +54,7 @@ export interface RecoveryState {
   selectedMode: RecoveryMode | null;
   contentStatus: "idle" | "loading" | "success" | "error";
   recovered: boolean | null;
-  recoveryContent: any | null;
+  recoveryContent: RecoveryContentData | null;
 }
 
 export interface MissionState {
