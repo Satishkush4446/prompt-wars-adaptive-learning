@@ -98,7 +98,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // Set up SDK client and model override
-  const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const ai = new GoogleGenAI({ apiKey });
 
   const startTimestamp = Date.now();

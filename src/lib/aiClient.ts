@@ -152,14 +152,37 @@ function validateLength(val: any, maxLength: number): boolean {
   return false;
 }
 
-// Call Gemini directly from browser
+// Fallback: call /api/ai serverless endpoint (used in Vercel production when VITE_GEMINI_API_KEY is not baked in)
+async function callApiRoute<T>(action: string, context: Record<string, any>): Promise<T> {
+  const response = await fetch("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, context }),
+  });
+
+  if (!response.ok) {
+    let errBody: any;
+    try { errBody = await response.json(); } catch (_) {}
+    throw new Error(errBody?.error?.message || `Server returned HTTP ${response.status}`);
+  }
+
+  const json: { ok: boolean; data?: T; error?: { code: string; message: string } } = await response.json();
+  if (!json.ok || !json.data) {
+    throw new Error(json.error?.message || "Failed to parse API response");
+  }
+  return json.data;
+}
+
+// Main dispatch: prefer direct browser Gemini (VITE_GEMINI_API_KEY set = local dev)
+// Falls back to /api/ai serverless (Vercel production with server-side GEMINI_API_KEY)
 async function callGeminiDirect(action: string, context: Record<string, any>): Promise<any> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("Missing VITE_GEMINI_API_KEY environment variable. Please configure it in your .env or .env.local file.");
+    // No client-side key — route to server-side /api/ai (Vercel production path)
+    return callApiRoute(action, context);
   }
 
-  const modelName = import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash";
+  const modelName = import.meta.env.VITE_GEMINI_MODEL || "gemini-3.6-flash";
 
   // 1. Inputs validation
   if (action === "generateLesson") {
