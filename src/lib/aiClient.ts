@@ -153,7 +153,7 @@ async function callApiRoute<T>(action: string, context: Record<string, any>): Pr
     throw new Error(errBody?.error?.message || `Server returned HTTP ${response.status}`);
   }
 
-  const json: { ok: boolean; data?: T; error?: { code: string; message: string } } = await response.json();
+  const json = (await response.json()) as { ok: boolean; data?: T; error?: { code: string; message: string } };
   if (!json.ok || !json.data) {
     throw new Error(json.error?.message || "Failed to parse API response");
   }
